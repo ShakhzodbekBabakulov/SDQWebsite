@@ -33,8 +33,8 @@ test("the approved six carriage ranges are the source of truth", () => {
       { id: "official-1c-partner", startFrame: 228, centreFrame: 243, endFrame: 258 },
       { id: "trusted-partnerships", startFrame: 324, centreFrame: 339, endFrame: 354 },
       { id: "support-team", startFrame: 408, centreFrame: 420, endFrame: 432 },
-      { id: "artificial-intelligence", startFrame: 504, centreFrame: 525, endFrame: 546 },
-      { id: "lets-talk", startFrame: 606, centreFrame: 627, endFrame: 648 },
+      { id: "artificial-intelligence", startFrame: 504, centreFrame: 512, endFrame: 519 },
+      { id: "lets-talk", startFrame: 606, centreFrame: 624, endFrame: 642 },
     ],
   );
 });

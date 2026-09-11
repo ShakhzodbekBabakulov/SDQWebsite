@@ -46,15 +46,15 @@ export const chapters = [
     id: "artificial-intelligence",
     label: "Artificial intelligence",
     startFrame: 504,
-    centreFrame: 525,
-    endFrame: 546,
+    centreFrame: 512,
+    endFrame: 519,
   },
   {
     id: "lets-talk",
     label: "Let’s Talk",
     startFrame: 606,
-    centreFrame: 627,
-    endFrame: 648,
+    centreFrame: 624,
+    endFrame: 642,
   },
 ] as const satisfies readonly Chapter[];
 
@@ -63,4 +63,3 @@ export const frameToSeconds = (frame: number) => frame / FPS;
 export const loopPlaybackRate = (chapter: Chapter) =>
   ((chapter.endFrame - chapter.startFrame) / FPS) /
   (LOOP_DURATION_MS / 2 / 1_000);
-

@@ -10,7 +10,7 @@ This session delivers only the film and scrolling mechanics. No visible headline
 
 1. Create private version history and an official Next.js App Router project using TypeScript, ESLint, standard CSS, and no animation or scrolling library.
 2. Preserve the approved master outside the public website and create matching forward and reverse H.264 browser movies plus an opening poster.
-3. Define six chapter ranges: SDQ 108-132 (centre 120), 1C 228-258 (centre 243), partnerships 324-354 (centre 339), support 408-432 (centre 420), AI 504-546 (centre 525), and contact 606-648 (centre 627).
+3. Define six chapter ranges: SDQ 108-132 (centre 120), 1C 228-258 (centre 243), partnerships 324-354 (centre 339), support 408-432 (centre 420), AI 504-519 (centre 512), and contact 606-642 (centre 624).
 4. Give every chapter an exact four-second forward/back resting loop.
 5. Auto-play the opening arrival to SDQ, then allow exactly one adjacent carriage per deliberate gesture.
 6. Let continued gesture momentum adjust travel speed only within 1.10x-1.20x; it must never select another carriage.
