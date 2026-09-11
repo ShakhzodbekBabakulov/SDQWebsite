@@ -195,6 +195,35 @@ test("skipping the first arrival cannot revive the greeting during a later wrap"
   await expect(greeting).toHaveCount(0);
 });
 
+test("Home during the first arrival permanently disarms the greeting", async ({
+  page,
+}) => {
+  test.setTimeout(30_000);
+  await page.goto("/");
+  const greeting = page.getByText("Assalomu Aleykum", { exact: true });
+  await expect(greeting).toBeVisible();
+
+  await page.keyboard.press("Home");
+  await expect(chapterAnnouncement(page)).toHaveText("SDQ consulting");
+  await expect(greeting).toHaveCount(0);
+
+  await page.waitForTimeout(1_000);
+  await page.keyboard.press("End");
+  await expect(chapterAnnouncement(page)).toHaveText("Let’s Talk");
+  await expect(page.locator(".video-stage")).toHaveAttribute(
+    "data-frame",
+    "624",
+  );
+  await expect(greeting).toHaveCount(0);
+
+  await page.waitForTimeout(1_000);
+  await page.keyboard.press("ArrowDown");
+  await expect(chapterAnnouncement(page)).toHaveText("SDQ consulting", {
+    timeout: 12_000,
+  });
+  await expect(greeting).toHaveCount(0);
+});
+
 test("the browser language selects the initial locale after hydration", async ({
   browser,
 }) => {
@@ -280,6 +309,37 @@ test("closing from a focused language option restores focus to the current langu
   await expect(current).toHaveText("EN");
   await expect(options).toHaveCount(0);
   await expect(current).toBeFocused();
+});
+
+test("Escape on a closed language trigger cannot steal focus after a later focus-out", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const current = page.locator(".language-switcher__current");
+  const options = page.locator(".language-switcher__options");
+
+  await current.focus();
+  await options.getByRole("button", { name: "RU", exact: true }).focus();
+  await page.keyboard.press("Escape");
+  await expect(options).toHaveCount(0);
+  await expect(current).toBeFocused();
+
+  await page.keyboard.press("Escape");
+  await expect(options).toHaveCount(0);
+  await current.click();
+  await options.getByRole("button", { name: "EN", exact: true }).focus();
+
+  await page.evaluate(() => {
+    const outside = document.createElement("button");
+    outside.dataset.testFocusAfterClosedEscape = "true";
+    outside.textContent = "Outside language control";
+    document.body.append(outside);
+    outside.focus();
+  });
+  const outside = page.locator('[data-test-focus-after-closed-escape="true"]');
+  await expect(options).toHaveCount(0);
+  await expect(outside).toBeFocused();
+  await outside.evaluate((element) => element.remove());
 });
 
 test("the language selector stays plain text when idle and unfolded", async ({

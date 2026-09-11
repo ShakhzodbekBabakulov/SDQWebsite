@@ -256,6 +256,7 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
     localeOptions.find((option) => option.locale === locale) ?? localeOptions[0];
 
   const closeLanguageAndRestoreFocus = () => {
+    if (!languageOpen) return;
     restoreLanguageFocusRef.current = true;
     setLanguageOpen(false);
   };
