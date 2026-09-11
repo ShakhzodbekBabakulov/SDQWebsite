@@ -33,9 +33,13 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
 
   const apply = useCallback(
     (command: Parameters<VideoStageHandle["apply"]>[0] | null) => {
-      if (command) stageRef.current?.apply(command);
+      if (!command) return;
+      stageRef.current?.apply(command);
+      if (command.type === "hold" && controller) {
+        setChapterLabel(chapters[controller.snapshot().chapterIndex].label);
+      }
     },
-    [],
+    [controller],
   );
 
   const handleReady = useCallback(() => {
@@ -100,9 +104,6 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
 
       if (intent === "first" || intent === "last") {
         apply(controller.jump(intent, performance.now()));
-        setChapterLabel(
-          chapters[intent === "first" ? 0 : chapters.length - 1].label,
-        );
         finishGestureLater();
         return;
       }
