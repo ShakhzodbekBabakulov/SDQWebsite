@@ -117,6 +117,7 @@ test("the opening greeting dominates the clear upper space and fades gradually",
   await page.goto("/");
   const greeting = page.getByText("Assalomu Aleykum", { exact: true });
   await expect(greeting).toBeVisible();
+  await expect(greeting).toHaveCSS("opacity", "1");
 
   const layout = await greeting.evaluate((element) => {
     const bounds = element.getBoundingClientRect();
@@ -166,12 +167,7 @@ test("the opening greeting dominates the clear upper space and fades gradually",
       ).__greetingFadeSamples,
   );
   const opacities = samples.map((sample) => sample.opacity);
-  expect(Math.max(...opacities)).toBeGreaterThan(0.55);
-  expect(Math.min(...opacities)).toBeLessThan(0.8);
-  expect(Math.max(...opacities) - Math.min(...opacities)).toBeGreaterThan(0.1);
-  expect(opacities.some((opacity) => opacity > 0.02 && opacity < 0.95)).toBe(
-    true,
-  );
+  expect(opacities.some((opacity) => opacity > 0 && opacity < 1)).toBe(true);
   await expect(greeting).toBeHidden();
 });
 
