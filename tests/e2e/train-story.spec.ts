@@ -175,6 +175,44 @@ test("the opening greeting dominates the clear upper space and fades gradually",
   await expect(greeting).toBeHidden();
 });
 
+test("the opening greeting stays above the train in short desktop films", async ({
+  page,
+}) => {
+  for (const viewport of [
+    { width: 1920, height: 540 },
+    { width: 1366, height: 400 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    const greeting = page.getByText("Assalomu Aleykum", { exact: true });
+    await expect(greeting).toBeVisible();
+
+    const layout = await greeting.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      const frame = element.parentElement!.getBoundingClientRect();
+      const lineHeight = Number.parseFloat(getComputedStyle(element).lineHeight);
+      const fontSize = Number.parseFloat(getComputedStyle(element).fontSize);
+      return {
+        bottom: bounds.bottom,
+        filmHeight: frame.height,
+        fontSize,
+        left: bounds.left,
+        lineCount: bounds.height / lineHeight,
+        right: bounds.right,
+        filmLeft: frame.left,
+        filmRight: frame.right,
+        trainRoofLine: frame.top + frame.height * 0.29,
+      };
+    });
+
+    expect(layout.lineCount).toBeLessThan(1.25);
+    expect(layout.bottom).toBeLessThanOrEqual(layout.trainRoofLine);
+    expect(layout.fontSize).toBeGreaterThanOrEqual(layout.filmHeight * 0.09);
+    expect(layout.left).toBeGreaterThanOrEqual(layout.filmLeft);
+    expect(layout.right).toBeLessThanOrEqual(layout.filmRight);
+  }
+});
+
 test("skipping the first arrival cannot revive the greeting during a later wrap", async ({
   page,
 }) => {
@@ -218,9 +256,7 @@ test("Home during the first arrival permanently disarms the greeting", async ({
 
   await page.waitForTimeout(1_000);
   await page.keyboard.press("ArrowDown");
-  await expect(chapterAnnouncement(page)).toHaveText("SDQ consulting", {
-    timeout: 12_000,
-  });
+  await waitForVisibleChapterFrame(page, 0, 72);
   await expect(greeting).toHaveCount(0);
 });
 
@@ -524,6 +560,90 @@ test("a late poster load cannot replace the active paused video frame", async ({
 
   await expect(ambient).toHaveAttribute("data-frame", "120");
   await expect(ambient).toHaveAttribute("data-direction", "1");
+});
+
+test("a transient mirrored-edge failure restores clean canvas state on recovery", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.addInitScript(() => {
+    const canvasPrototype = CanvasRenderingContext2D.prototype as unknown as {
+      drawImage: (
+        image: CanvasImageSource,
+        dx: number,
+        dy: number,
+        ...rest: number[]
+      ) => void;
+    };
+    const drawImage = canvasPrototype.drawImage;
+    const state = { thrown: false };
+    (
+      globalThis as typeof globalThis & {
+        __edgeTransientFailure: typeof state;
+      }
+    ).__edgeTransientFailure = state;
+    canvasPrototype.drawImage = function (
+      this: CanvasRenderingContext2D,
+      image,
+      dx,
+      dy,
+      ...rest
+    ) {
+      const isEdge = this.canvas.classList.contains(
+        "video-stage__edge-canvas",
+      );
+      if (isEdge && !state.thrown) {
+        state.thrown = true;
+        throw new Error("forced one-time edge paint failure");
+      }
+      return Reflect.apply(drawImage, this, [image, dx, dy, ...rest]);
+    };
+  });
+
+  await page.goto("/");
+  const edge = page.locator(".video-stage__edge-canvas");
+  await page.waitForFunction(
+    () =>
+      (
+        globalThis as typeof globalThis & {
+          __edgeTransientFailure?: {
+            thrown: boolean;
+          };
+        }
+      ).__edgeTransientFailure?.thrown === true,
+  );
+  await expect(edge).toHaveAttribute("data-painted", "true");
+  await expect(edge).toHaveAttribute("data-axis", "vertical");
+  await expect(edge).toHaveAttribute("data-direction", "1");
+  await expect(edge).toBeVisible();
+
+  const recovery = await page.locator(".video-stage").evaluate((stage) => {
+    const edgeCanvas = stage.querySelector(
+      ".video-stage__edge-canvas",
+    ) as HTMLCanvasElement;
+    const transform = edgeCanvas.getContext("2d")!.getTransform();
+    return {
+      stageFrame: Number(stage.getAttribute("data-frame")),
+      edgeFrame: Number(edgeCanvas.dataset.frame),
+      transform: [
+        transform.a,
+        transform.b,
+        transform.c,
+        transform.d,
+        transform.e,
+        transform.f,
+      ],
+      activeVideos: [...stage.querySelectorAll("video")].filter(
+        (video) => getComputedStyle(video).opacity === "1",
+      ).length,
+    };
+  });
+
+  expect(Math.abs(recovery.edgeFrame - recovery.stageFrame)).toBeLessThanOrEqual(
+    2,
+  );
+  expect(recovery.transform).toEqual([1, 0, 0, 1, 0, 0]);
+  expect(recovery.activeVideos).toBe(1);
 });
 
 test("canvas painting failure falls back to the ambient poster without stopping the film", async ({

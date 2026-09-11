@@ -389,6 +389,8 @@ export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
             edge.dataset.frame = String(frame);
             edge.dataset.direction = String(direction);
           } catch {
+            const edgeWidth = edge.width;
+            edge.width = edgeWidth;
             showCanvasFallback(edge);
           }
         }

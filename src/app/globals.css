@@ -133,7 +133,7 @@ video.film-layer {
   margin: 0;
   color: var(--sdq-navy);
   font-family: var(--font-sdq-heading), Montserrat, sans-serif;
-  font-size: clamp(3.5rem, 6vw, 6.75rem);
+  font-size: clamp(2.75rem, min(6vw, 10.6667vh), 6.75rem);
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.035em;
