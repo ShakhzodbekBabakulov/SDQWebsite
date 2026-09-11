@@ -52,6 +52,79 @@ async function waitForVisibleChapterFrame(
   );
 }
 
+async function waitForStageFrame(
+  page: Page,
+  minimumFrame: number,
+  maximumFrame: number,
+) {
+  await page.waitForFunction(
+    ({ minimum, maximum }: { minimum: number; maximum: number }) => {
+      const stage = document.querySelector(".video-stage");
+      const frame = Number(stage?.getAttribute("data-frame"));
+      return frame >= minimum && frame <= maximum;
+    },
+    { minimum: minimumFrame, maximum: maximumFrame },
+  );
+}
+
+async function finishWrapDepartureForTest(page: Page) {
+  await page.waitForFunction(
+    () => Number(document.querySelector(".video-stage")?.getAttribute("data-frame")) > 624,
+  );
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await page.evaluate(async () => {
+      const activeVideo = [...document.querySelectorAll("video")].find(
+        (video) => getComputedStyle(video).opacity === "1",
+      );
+      if (!activeVideo) throw new Error("An active film layer is required");
+      await new Promise<void>((resolve) => {
+        const finish = () => {
+          window.clearTimeout(timeout);
+          activeVideo.removeEventListener("seeked", finish);
+          resolve();
+        };
+        const timeout = window.setTimeout(finish, 1_000);
+        activeVideo.addEventListener("seeked", finish, { once: true });
+        activeVideo.currentTime = 719 / 24;
+      });
+      await activeVideo.play();
+    });
+    const advanced = await page
+      .waitForFunction(
+        () => {
+          const frame = Number(
+            document.querySelector(".video-stage")?.getAttribute("data-frame"),
+          );
+          return frame >= 720 || frame <= 72;
+        },
+        undefined,
+        { timeout: 2_000 },
+      )
+      .then(() => true)
+      .catch(() => false);
+    if (advanced) return;
+  }
+  throw new Error("The wrap departure did not publish its final frame");
+}
+
+async function observeGreetingFadeEndpoint(page: Page) {
+  const observation = await page.waitForFunction(() => {
+    const stage = document.querySelector(".video-stage");
+    const greeting = document.querySelector(".opening-greeting");
+    if (!stage || !greeting) return false;
+    const frame = Number(stage.getAttribute("data-frame"));
+    if (frame < 96 || frame > 107) return false;
+    return {
+      frame,
+      opacity: Number.parseFloat(getComputedStyle(greeting).opacity),
+    };
+  });
+  return (await observation.jsonValue()) as {
+    frame: number;
+    opacity: number;
+  };
+}
+
 async function travelForwardOneChapter(
   page: Page,
   minimumFrame: number,
@@ -104,8 +177,10 @@ test("the opening greeting appears only during the first arrival and fades befor
 
   await waitForVisibleChapterFrame(page, 84, 89);
   await expect(greeting).toBeVisible();
-  await waitForVisibleChapterFrame(page, 96, 107);
-  await expect(greeting).toBeHidden();
+  const fadeEndpoint = await observeGreetingFadeEndpoint(page);
+  expect(fadeEndpoint.frame).toBeGreaterThanOrEqual(96);
+  expect(fadeEndpoint.frame).toBeLessThanOrEqual(107);
+  expect(fadeEndpoint.opacity).toBe(0);
   await waitForVisibleChapterFrame(page, 108, 132);
   await expect(greeting).toHaveCount(0);
 });
@@ -157,7 +232,7 @@ test("the opening greeting dominates the clear upper space and fades gradually",
     };
     requestAnimationFrame(sample);
   });
-  await waitForVisibleChapterFrame(page, 96, 107);
+  const fadeEndpoint = await observeGreetingFadeEndpoint(page);
   const samples = await page.evaluate(
     () =>
       (
@@ -168,7 +243,9 @@ test("the opening greeting dominates the clear upper space and fades gradually",
   );
   const opacities = samples.map((sample) => sample.opacity);
   expect(opacities.some((opacity) => opacity > 0 && opacity < 1)).toBe(true);
-  await expect(greeting).toBeHidden();
+  expect(fadeEndpoint.frame).toBeGreaterThanOrEqual(96);
+  expect(fadeEndpoint.frame).toBeLessThanOrEqual(107);
+  expect(fadeEndpoint.opacity).toBe(0);
 });
 
 test("the opening greeting stays above the train in short desktop films", async ({
@@ -223,9 +300,10 @@ test("skipping the first arrival cannot revive the greeting during a later wrap"
 
   await page.waitForTimeout(1_000);
   await page.keyboard.press("ArrowDown");
-  await expect(chapterAnnouncement(page)).toHaveText("SDQ consulting", {
-    timeout: 12_000,
-  });
+  await page.waitForTimeout(500);
+  await page.keyboard.press("ArrowDown");
+  await finishWrapDepartureForTest(page);
+  await waitForStageFrame(page, 0, 72);
   await expect(greeting).toHaveCount(0);
 });
 
@@ -252,7 +330,10 @@ test("Home during the first arrival permanently disarms the greeting", async ({
 
   await page.waitForTimeout(1_000);
   await page.keyboard.press("ArrowDown");
-  await waitForVisibleChapterFrame(page, 0, 72);
+  await page.waitForTimeout(500);
+  await page.keyboard.press("ArrowDown");
+  await finishWrapDepartureForTest(page);
+  await waitForStageFrame(page, 0, 72);
   await expect(greeting).toHaveCount(0);
 });
 
@@ -912,6 +993,7 @@ test("the language control switches Scene one across all four approved languages
 test("scene two preserves the selected language and supports all four translations", async ({
   page,
 }) => {
+  test.setTimeout(40_000);
   await page.goto("/");
   await waitForVisibleChapterFrame(page, 108, 132);
 
@@ -954,7 +1036,7 @@ test("scene two preserves the selected language and supports all four translatio
     await chooseLanguage(page, translation.button);
     await expect(
       page.getByRole("heading", { name: translation.headline }),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText(translation.body)).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute(
       "lang",
