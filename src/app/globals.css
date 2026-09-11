@@ -1,0 +1,77 @@
+:root {
+  --studio: #eee7dc;
+  background: var(--studio);
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--studio);
+}
+
+body {
+  position: fixed;
+  inset: 0;
+}
+
+.train-story,
+.video-stage {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--studio);
+}
+
+.film-layer {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.film-layer.is-active,
+.film-poster:not(.is-hidden) {
+  opacity: 1;
+}
+
+.film-poster {
+  z-index: 3;
+}
+
+video.film-layer {
+  z-index: 2;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .film-layer {
+    transition: none;
+  }
+}
