@@ -67,7 +67,7 @@ export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
     const readyRef = useRef(false);
     const readyReportedRef = useRef(false);
     const suspendedRef = useRef(false);
-    const activeWasPlayingRef = useRef(false);
+    const shouldBePlayingRef = useRef(false);
     const [activeDirection, setActiveDirection] = useState<Direction>(1);
     const [hasDecodedFrame, setHasDecodedFrame] = useState(false);
 
@@ -226,6 +226,7 @@ export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
     );
 
     const failSafely = useCallback(() => {
+      shouldBePlayingRef.current = false;
       pauseBoth();
       onError();
     }, [onError, pauseBoth]);
@@ -302,9 +303,7 @@ export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
         }
 
         if (command.type === "pause") {
-          activeWasPlayingRef.current = !(
-            pair.forward.paused && pair.reverse.paused
-          );
+          shouldBePlayingRef.current = false;
           pauseBoth();
           return;
         }
@@ -312,31 +311,31 @@ export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
         const token = ++generationRef.current;
 
         if (command.type === "hold") {
+          shouldBePlayingRef.current = false;
           void alignAndReveal(1, command.frame, token).catch(failSafely);
           return;
         }
 
         if (command.type === "loop") {
+          shouldBePlayingRef.current = true;
           void runLoop(command, token);
           return;
         }
 
+        shouldBePlayingRef.current = true;
         void runSegment(command, token);
       },
       [alignAndReveal, failSafely, pauseBoth, runLoop, runSegment, videoFor, videos],
     );
 
     const pause = useCallback(() => {
-      const pair = videos();
-      if (!pair) return;
-      activeWasPlayingRef.current = !(pair.forward.paused && pair.reverse.paused);
       suspendedRef.current = true;
       pauseBoth();
-    }, [pauseBoth, videos]);
+    }, [pauseBoth]);
 
     const resume = useCallback(() => {
       suspendedRef.current = false;
-      if (!activeWasPlayingRef.current) return;
+      if (!shouldBePlayingRef.current) return;
       const active = videoFor(activeDirectionRef.current);
       void active?.play().catch(failSafely);
     }, [failSafely, videoFor]);
