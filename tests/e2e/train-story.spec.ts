@@ -16,6 +16,12 @@ function observeBrowserErrors(page: Page) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "languages", {
+      configurable: true,
+      get: () => ["uz-Latn"],
+    });
+  });
   observeBrowserErrors(page);
 });
 
@@ -54,11 +60,19 @@ async function travelForwardOneChapter(
   const viewport = page.viewportSize();
   if (!viewport) throw new Error("A desktop viewport is required");
   await page.mouse.move(viewport.width / 2, viewport.height / 2);
-  for (let signal = 0; signal < 24; signal += 1) {
-    await page.mouse.wheel(0, 80);
-    await page.waitForTimeout(8);
-  }
+  await page.mouse.wheel(0, 80);
   await waitForVisibleChapterFrame(page, minimumFrame, maximumFrame);
+  await expect(page.locator(".scene-caption")).toBeVisible();
+}
+
+async function chooseLanguage(page: Page, label: "UZ" | "ЎЗ" | "RU" | "EN") {
+  const current = page.locator(".language-switcher__current");
+  if ((await current.textContent())?.trim() === label) return;
+  await current.click();
+  await page
+    .locator(".language-switcher__options")
+    .getByRole("button", { name: label, exact: true })
+    .click();
 }
 
 test("scene one shows the Uzbek Latin caption after the SDQ carriage settles", async ({
@@ -80,12 +94,301 @@ test("scene one shows the Uzbek Latin caption after the SDQ carriage settles", a
   await expect(page.locator("html")).toHaveAttribute("lang", "uz-Latn");
 });
 
+test("the opening greeting appears only during the first arrival and fades before rest", async ({
+  page,
+}) => {
+  test.setTimeout(30_000);
+  await page.goto("/");
+  const greeting = page.getByText("Assalomu Aleykum", { exact: true });
+  await expect(greeting).toBeVisible();
+
+  await waitForVisibleChapterFrame(page, 84, 89);
+  await expect(greeting).toBeVisible();
+  await waitForVisibleChapterFrame(page, 96, 107);
+  await expect(greeting).toBeHidden();
+  await waitForVisibleChapterFrame(page, 108, 132);
+  await expect(greeting).toHaveCount(0);
+
+  await page.keyboard.press("End");
+  await waitForVisibleChapterFrame(page, 624, 624);
+  await page.waitForTimeout(400);
+  await page.keyboard.press("ArrowDown");
+  await expect(chapterAnnouncement(page)).toHaveText("SDQ consulting", {
+    timeout: 12_000,
+  });
+  await expect(greeting).toHaveCount(0);
+});
+
+test("the browser language selects the initial locale after hydration", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 720 },
+    locale: "ru-RU",
+  });
+  const page = await context.newPage();
+  const errors = observeBrowserErrors(page);
+
+  await page.goto("http://127.0.0.1:3000/");
+  await expect(page.locator(".language-switcher__current")).toHaveText("RU");
+  await expect(page.locator("html")).toHaveAttribute("lang", "ru");
+  await waitForVisibleChapterFrame(page, 108, 132);
+  await expect(
+    page.getByRole("heading", { name: "Помогаем бизнесу двигаться вперёд." }),
+  ).toBeVisible();
+
+  expect(errors).toEqual([]);
+  await context.close();
+});
+
+test("the compact language control reveals options and closes after selection, Escape, or focus leaves", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const current = page.locator(".language-switcher__current");
+  const options = page.locator(".language-switcher__options");
+
+  await expect(current).toHaveText("UZ");
+  await expect(page.locator(".language-switcher button:visible")).toHaveCount(1);
+  await expect(options).toHaveCount(0);
+
+  await current.hover();
+  await expect(options).toBeVisible();
+  await expect(options.getByRole("button")).toHaveCount(4);
+  await page.mouse.move(0, 0);
+  await expect(options).toHaveCount(0);
+
+  await current.click();
+  await options.getByRole("button", { name: "RU", exact: true }).click();
+  await expect(current).toHaveText("RU");
+  await expect(options).toHaveCount(0);
+  await expect(page.locator("html")).toHaveAttribute("lang", "ru");
+
+  await current.focus();
+  await expect(options).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(options).toHaveCount(0);
+
+  await current.evaluate((button) => (button as HTMLButtonElement).blur());
+  await current.focus();
+  await options.getByRole("button", { name: "EN", exact: true }).focus();
+  await page.evaluate(() => {
+    const outside = document.createElement("button");
+    outside.dataset.testFocusOutside = "true";
+    document.body.append(outside);
+    outside.focus();
+  });
+  await expect(options).toHaveCount(0);
+  await page.locator('[data-test-focus-outside="true"]').evaluate((outside) =>
+    outside.remove(),
+  );
+});
+
+test("the compact language control stays in the film's top-right corner", async ({
+  page,
+}) => {
+  for (const viewport of [
+    { width: 1280, height: 720 },
+    { width: 1440, height: 900 },
+    { width: 2560, height: 1080 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    const layout = await page
+      .locator(".language-switcher__control")
+      .evaluate((control) => {
+        const bounds = control.getBoundingClientRect();
+        const filmWidth = Math.min(innerWidth, (innerHeight * 16) / 9);
+        const filmHeight = Math.min(innerHeight, (innerWidth * 9) / 16);
+        return {
+          left: bounds.left,
+          right: bounds.right,
+          top: bounds.top,
+          bottom: bounds.bottom,
+          filmLeft: (innerWidth - filmWidth) / 2,
+          filmRight: (innerWidth + filmWidth) / 2,
+          filmTop: (innerHeight - filmHeight) / 2,
+          filmBottom: (innerHeight + filmHeight) / 2,
+        };
+      });
+
+    expect(layout.left).toBeGreaterThanOrEqual(layout.filmLeft);
+    expect(layout.right).toBeLessThanOrEqual(layout.filmRight);
+    expect(layout.top).toBeGreaterThanOrEqual(layout.filmTop);
+    expect(layout.bottom).toBeLessThanOrEqual(layout.filmBottom);
+  }
+});
+
+test("desktop ambience paints the current frame and extends tall and ultrawide margins", async ({
+  page,
+}) => {
+  for (const viewport of [
+    { width: 1280, height: 720, axis: "none" },
+    { width: 1440, height: 900, axis: "vertical" },
+    { width: 2560, height: 1080, axis: "horizontal" },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    await waitForVisibleChapterFrame(page, 24, 132);
+    await page.waitForFunction(
+      (axis) =>
+        document.querySelector(".video-stage__ambient-canvas")?.getAttribute("data-painted") ===
+          "true" &&
+        document.querySelector(".video-stage__edge-canvas")?.getAttribute("data-axis") ===
+          axis,
+      viewport.axis,
+    );
+    await expect
+      .poll(() =>
+        page.locator(".video-stage").evaluate((stage) => {
+          const ambient = stage.querySelector(
+            ".video-stage__ambient-canvas",
+          ) as HTMLCanvasElement;
+          const activeVideo = [...stage.querySelectorAll("video")].find(
+            (video) => getComputedStyle(video).opacity === "1",
+          ) as HTMLVideoElement;
+          const direction = activeVideo.currentSrc.includes("reverse") ? -1 : 1;
+          const activeFrame = Math.round(
+            direction === 1
+              ? activeVideo.currentTime * 24
+              : 720 - activeVideo.currentTime * 24,
+          );
+          return Math.abs(Number(ambient.dataset.frame) - activeFrame);
+        }),
+      )
+      .toBeLessThanOrEqual(6);
+
+    const presentation = await page.locator(".video-stage").evaluate((stage) => {
+      const ambient = stage.querySelector(
+        ".video-stage__ambient-canvas",
+      ) as HTMLCanvasElement;
+      const edge = stage.querySelector(
+        ".video-stage__edge-canvas",
+      ) as HTMLCanvasElement;
+      const activeVideo = [...stage.querySelectorAll("video")].find(
+        (video) => getComputedStyle(video).opacity === "1",
+      ) as HTMLVideoElement;
+      const ambientBounds = ambient.getBoundingClientRect();
+      return {
+        stageFrame: Number(stage.getAttribute("data-frame")),
+        ambientFrame: Number(ambient.dataset.frame),
+        ambientCoversViewport:
+          ambientBounds.left < 0 &&
+          ambientBounds.top < 0 &&
+          ambientBounds.right > innerWidth &&
+          ambientBounds.bottom > innerHeight,
+        edgeWidth: edge.width,
+        edgeHeight: edge.height,
+        objectFit: getComputedStyle(activeVideo).objectFit,
+      };
+    });
+
+    expect(Math.abs(presentation.ambientFrame - presentation.stageFrame)).toBeLessThanOrEqual(2);
+    expect(presentation.ambientCoversViewport).toBe(true);
+    expect(presentation.edgeWidth).toBeLessThanOrEqual(2560);
+    expect(presentation.edgeHeight).toBeLessThanOrEqual(1440);
+    expect(presentation.objectFit).toBe("contain");
+  }
+});
+
+test("canvas painting failure falls back to the ambient poster without stopping the film", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const canvasPrototype = CanvasRenderingContext2D.prototype as unknown as {
+      drawImage: (
+        image: CanvasImageSource,
+        dx: number,
+        dy: number,
+        ...rest: number[]
+      ) => void;
+    };
+    const drawImage = canvasPrototype.drawImage;
+    (
+      globalThis as typeof globalThis & { __ambientDrawCalls: number }
+    ).__ambientDrawCalls = 0;
+    canvasPrototype.drawImage = function (
+      this: CanvasRenderingContext2D,
+      image,
+      dx,
+      dy,
+      ...rest
+    ) {
+      if (this.canvas.classList.contains("video-stage__ambient-canvas")) {
+        (
+          globalThis as typeof globalThis & { __ambientDrawCalls: number }
+        ).__ambientDrawCalls += 1;
+        if (
+          (
+            globalThis as typeof globalThis & { __ambientDrawCalls: number }
+          ).__ambientDrawCalls > 1
+        ) {
+          throw new Error("forced ambient paint failure");
+        }
+      }
+      return Reflect.apply(drawImage, this, [image, dx, dy, ...rest]);
+    };
+  });
+
+  await page.goto("/");
+  await page.waitForFunction(
+    () =>
+      (
+        globalThis as typeof globalThis & { __ambientDrawCalls?: number }
+      ).__ambientDrawCalls! > 1,
+  );
+  const firstFrame = await page
+    .locator(".video-stage")
+    .getAttribute("data-frame");
+  await page.waitForTimeout(350);
+
+  await expect(page.locator(".video-stage__ambient-canvas")).toHaveAttribute(
+    "data-painted",
+    "false",
+  );
+  await expect(page.locator(".video-stage__ambient-canvas")).toBeHidden();
+  await expect(page.locator(".video-stage__ambient-poster")).toBeVisible();
+  expect(
+    await page.locator("video").evaluateAll(
+      (videos) =>
+        videos.filter((video) => getComputedStyle(video).opacity === "1").length,
+    ),
+  ).toBe(1);
+  expect(await page.locator(".video-stage").getAttribute("data-frame")).not.toBe(
+    firstFrame,
+  );
+});
+
+test("canvas context loss keeps the foreground film running", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForFunction(
+    () =>
+      document.querySelector(".video-stage__ambient-canvas")?.getAttribute("data-painted") ===
+      "true",
+  );
+  const firstFrame = await page
+    .locator(".video-stage")
+    .getAttribute("data-frame");
+
+  await page.locator(".video-stage__ambient-canvas").dispatchEvent("contextlost");
+  await expect(page.locator(".video-stage__ambient-canvas")).toHaveAttribute(
+    "data-painted",
+    "false",
+  );
+  await expect(page.locator(".video-stage__ambient-poster")).toBeVisible();
+  await page.waitForTimeout(350);
+  expect(await page.locator(".video-stage").getAttribute("data-frame")).not.toBe(
+    firstFrame,
+  );
+});
+
 test("scene one keeps its captions inside the film on a taller desktop", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await waitForVisibleChapterFrame(page, 108, 132);
+  await expect(page.locator(".scene-caption")).toBeVisible();
 
   const layout = await page.locator(".scene-caption").evaluate((caption) => {
     const heading = caption.querySelector("h2") as HTMLElement;
@@ -187,7 +490,7 @@ test("the language control switches Scene one across all four approved languages
   ] as const;
 
   for (const translation of translations) {
-    await page.getByRole("button", { name: translation.button }).click();
+    await chooseLanguage(page, translation.button);
     await expect(
       page.getByRole("heading", { name: translation.headline }),
     ).toBeVisible();
@@ -205,7 +508,7 @@ test("scene two preserves the selected language and supports all four translatio
   await page.goto("/");
   await waitForVisibleChapterFrame(page, 108, 132);
 
-  await page.getByRole("button", { name: "RU" }).click();
+  await chooseLanguage(page, "RU");
   await page.mouse.move(640, 360);
   for (let signal = 0; signal < 24; signal += 1) {
     await page.mouse.wheel(0, 80);
@@ -241,7 +544,7 @@ test("scene two preserves the selected language and supports all four translatio
   ] as const;
 
   for (const translation of translations) {
-    await page.getByRole("button", { name: translation.button }).click();
+    await chooseLanguage(page, translation.button);
     await expect(
       page.getByRole("heading", { name: translation.headline }),
     ).toBeVisible();
@@ -342,7 +645,7 @@ test("scenes three through five show every approved translation", async ({
   for (const scene of scenes) {
     await travelForwardOneChapter(page, scene.frames[0], scene.frames[1]);
     for (const translation of scene.translations) {
-      await page.getByRole("button", { name: translation.button }).click();
+      await chooseLanguage(page, translation.button);
       await expect(
         page.getByRole("heading", { name: translation.headline }),
       ).toBeVisible();
@@ -386,7 +689,7 @@ test("scene six presents the approved contact actions in the film's right side",
   ] as const;
 
   for (const item of actions) {
-    await page.getByRole("button", { name: item.button }).click();
+    await chooseLanguage(page, item.button);
     await expect(page.getByRole("heading", { name: item.headline })).toBeVisible();
     await expect(page.getByRole("link", { name: item.action })).toHaveAttribute(
       "href",
@@ -482,6 +785,14 @@ test("opposite input switches to the reverse movie and returns", async ({ page }
       ),
     )
     .toBe("1");
+  await expect(page.locator(".video-stage__ambient-canvas")).toHaveAttribute(
+    "data-direction",
+    "-1",
+  );
+  await expect(page.locator(".video-stage__edge-canvas")).toHaveAttribute(
+    "data-direction",
+    "-1",
+  );
   await expect(chapterAnnouncement(page)).toHaveText("SDQ consulting");
   await waitForVisibleChapterFrame(page, 108, 132);
 });
@@ -491,6 +802,7 @@ test("hiding during a layer switch resumes the unfinished journey", async ({
 }) => {
   await page.goto("/");
   await waitForVisibleChapterFrame(page, 108, 132);
+  await expect(page.locator(".scene-caption")).toBeVisible();
   await page.evaluate(() => {
     let hiddenForTest = false;
     Object.defineProperty(document, "hidden", {
@@ -506,6 +818,13 @@ test("hiding during a layer switch resumes the unfinished journey", async ({
   });
 
   await page.mouse.wheel(0, 100);
+  await expect(page.locator(".scene-caption")).toBeHidden();
+  await page.waitForFunction(() => {
+    const frame = Number(
+      document.querySelector(".video-stage")?.getAttribute("data-frame"),
+    );
+    return frame > 132 && frame < 228;
+  });
   await page.evaluate(() =>
     (
       window as typeof window & { setHiddenForTest: (hidden: boolean) => void }
@@ -537,6 +856,7 @@ test("reduced motion jumps to a paused centre frame", async ({ browser }) => {
   const errors = observeBrowserErrors(page);
   await page.goto("http://127.0.0.1:3000/");
   await expect(page.locator("video")).toHaveCount(2);
+  await expect(page.locator(".opening-greeting")).toHaveCount(0);
   await expect
     .poll(() =>
       page
@@ -580,6 +900,9 @@ test("small screens request only the poster", async ({ browser }) => {
   await expect(page.locator('img[src*="sdq-train-poster"]')).toHaveCount(1);
   await expect(page.locator(".scene-caption")).toHaveCount(0);
   await expect(page.locator(".language-switcher")).toHaveCount(0);
+  await expect(page.locator(".opening-greeting")).toHaveCount(0);
+  await expect(page.locator("canvas")).toHaveCount(0);
+  await expect(page.locator(".video-stage__ambient-poster")).toHaveCount(0);
   expect(movieRequests).toEqual([]);
   expect(await page.evaluate(() => scrollY)).toBe(0);
   expect(errors).toEqual([]);

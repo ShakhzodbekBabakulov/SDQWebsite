@@ -3,6 +3,7 @@
 import {
   forwardRef,
   useCallback,
+  useEffect,
   useImperativeHandle,
   useRef,
   useState,
@@ -23,6 +24,7 @@ const POSTER_SOURCE = "/video/sdq-train-poster.jpg";
 type VideoStageProps = {
   onComplete: (displayedFrame: number) => void;
   onError: () => void;
+  onFrame: (displayedFrame: number) => void;
   onReady: () => void;
 };
 
@@ -36,6 +38,237 @@ export type VideoStageHandle = {
 };
 
 type FrameCallback = (mediaTime: number) => void;
+type EdgeAxis = "horizontal" | "vertical" | "none";
+type EdgeSource = HTMLImageElement | HTMLVideoElement;
+
+const AMBIENT_FRAME_STEP = 2;
+const EDGE_MAX_WIDTH = 2560;
+const EDGE_MAX_HEIGHT = 1440;
+const EDGE_OVERLAP_CSS_PX = 20;
+
+const sourceSize = (source: EdgeSource) =>
+  source instanceof HTMLVideoElement
+    ? { width: source.videoWidth, height: source.videoHeight }
+    : { width: source.naturalWidth, height: source.naturalHeight };
+
+const sizeEdgeCanvas = (canvas: HTMLCanvasElement) => {
+  const scale = Math.min(
+    1,
+    EDGE_MAX_WIDTH / window.innerWidth,
+    EDGE_MAX_HEIGHT / window.innerHeight,
+  );
+  const width = Math.max(1, Math.round(window.innerWidth * scale));
+  const height = Math.max(1, Math.round(window.innerHeight * scale));
+  if (canvas.width !== width) canvas.width = width;
+  if (canvas.height !== height) canvas.height = height;
+};
+
+const paintMirroredEdges = (
+  context: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement,
+  source: EdgeSource,
+): EdgeAxis => {
+  sizeEdgeCanvas(canvas);
+  const { width: sourceWidth, height: sourceHeight } = sourceSize(source);
+  if (!sourceWidth || !sourceHeight) {
+    throw new Error("Ambient edge source is not ready");
+  }
+
+  const fit = Math.min(canvas.width / sourceWidth, canvas.height / sourceHeight);
+  const filmWidth = sourceWidth * fit;
+  const filmHeight = sourceHeight * fit;
+  const filmLeft = (canvas.width - filmWidth) / 2;
+  const filmTop = (canvas.height - filmHeight) / 2;
+  const filmRight = filmLeft + filmWidth;
+  const filmBottom = filmTop + filmHeight;
+  const horizontalBand = Math.max(0, filmLeft);
+  const verticalBand = Math.max(0, filmTop);
+  const overlap = (EDGE_OVERLAP_CSS_PX * canvas.width) / window.innerWidth;
+
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  if (horizontalBand < 0.5 && verticalBand < 0.5) return "none";
+
+  context.save();
+  if (horizontalBand >= 0.5) {
+    const sourceStrip = Math.min(
+      sourceWidth * 0.24,
+      Math.max(1, (horizontalBand / filmWidth) * sourceWidth),
+    );
+
+    context.save();
+    context.translate(filmLeft, 0);
+    context.scale(-1, 1);
+    context.drawImage(
+      source,
+      0,
+      0,
+      sourceStrip,
+      sourceHeight,
+      0,
+      filmTop,
+      horizontalBand,
+      filmHeight,
+    );
+    context.restore();
+
+    context.save();
+    context.translate(filmRight, 0);
+    context.scale(-1, 1);
+    context.drawImage(
+      source,
+      sourceWidth - sourceStrip,
+      0,
+      sourceStrip,
+      sourceHeight,
+      -horizontalBand,
+      filmTop,
+      horizontalBand,
+      filmHeight,
+    );
+    context.restore();
+
+    const sourceOverlap = (overlap / filmWidth) * sourceWidth;
+    context.drawImage(
+      source,
+      0,
+      0,
+      sourceOverlap,
+      sourceHeight,
+      filmLeft,
+      filmTop,
+      overlap,
+      filmHeight,
+    );
+    context.drawImage(
+      source,
+      sourceWidth - sourceOverlap,
+      0,
+      sourceOverlap,
+      sourceHeight,
+      filmRight - overlap,
+      filmTop,
+      overlap,
+      filmHeight,
+    );
+
+    const fade = Math.min(horizontalBand, filmWidth * 0.08);
+    const mask = context.createLinearGradient(0, 0, canvas.width, 0);
+    mask.addColorStop(0, "transparent");
+    mask.addColorStop(
+      Math.max(0, (filmLeft - fade) / canvas.width),
+      "transparent",
+    );
+    mask.addColorStop(filmLeft / canvas.width, "#000");
+    mask.addColorStop(
+      Math.min(1, (filmLeft + overlap) / canvas.width),
+      "transparent",
+    );
+    mask.addColorStop(
+      Math.max(0, (filmRight - overlap) / canvas.width),
+      "transparent",
+    );
+    mask.addColorStop(filmRight / canvas.width, "#000");
+    mask.addColorStop(
+      Math.min(1, (filmRight + fade) / canvas.width),
+      "transparent",
+    );
+    mask.addColorStop(1, "transparent");
+    context.globalCompositeOperation = "destination-in";
+    context.fillStyle = mask;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.restore();
+    return "horizontal";
+  }
+
+  const sourceStrip = Math.min(
+    sourceHeight * 0.24,
+    Math.max(1, (verticalBand / filmHeight) * sourceHeight),
+  );
+
+  context.save();
+  context.translate(0, filmTop);
+  context.scale(1, -1);
+  context.drawImage(
+    source,
+    0,
+    0,
+    sourceWidth,
+    sourceStrip,
+    filmLeft,
+    0,
+    filmWidth,
+    verticalBand,
+  );
+  context.restore();
+
+  context.save();
+  context.translate(0, filmBottom);
+  context.scale(1, -1);
+  context.drawImage(
+    source,
+    0,
+    sourceHeight - sourceStrip,
+    sourceWidth,
+    sourceStrip,
+    filmLeft,
+    -verticalBand,
+    filmWidth,
+    verticalBand,
+  );
+  context.restore();
+
+  const sourceOverlap = (overlap / filmHeight) * sourceHeight;
+  context.drawImage(
+    source,
+    0,
+    0,
+    sourceWidth,
+    sourceOverlap,
+    filmLeft,
+    filmTop,
+    filmWidth,
+    overlap,
+  );
+  context.drawImage(
+    source,
+    0,
+    sourceHeight - sourceOverlap,
+    sourceWidth,
+    sourceOverlap,
+    filmLeft,
+    filmBottom - overlap,
+    filmWidth,
+    overlap,
+  );
+
+  const fade = Math.min(verticalBand, filmHeight * 0.08);
+  const mask = context.createLinearGradient(0, 0, 0, canvas.height);
+  mask.addColorStop(0, "transparent");
+  mask.addColorStop(
+    Math.max(0, (filmTop - fade) / canvas.height),
+    "transparent",
+  );
+  mask.addColorStop(filmTop / canvas.height, "#000");
+  mask.addColorStop(
+    Math.min(1, (filmTop + overlap) / canvas.height),
+    "transparent",
+  );
+  mask.addColorStop(
+    Math.max(0, (filmBottom - overlap) / canvas.height),
+    "transparent",
+  );
+  mask.addColorStop(filmBottom / canvas.height, "#000");
+  mask.addColorStop(
+    Math.min(1, (filmBottom + fade) / canvas.height),
+    "transparent",
+  );
+  mask.addColorStop(1, "transparent");
+  context.globalCompositeOperation = "destination-in";
+  context.fillStyle = mask;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.restore();
+  return "vertical";
+};
 
 function nextPresentedFrame(video: HTMLVideoElement, callback: FrameCallback) {
   const frameVideo = video as HTMLVideoElement & {
@@ -58,18 +291,194 @@ function nextPresentedFrame(video: HTMLVideoElement, callback: FrameCallback) {
 }
 
 export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
-  function VideoStage({ onComplete, onError, onReady }, ref) {
+  function VideoStage({ onComplete, onError, onFrame, onReady }, ref) {
+    const stageRef = useRef<HTMLDivElement>(null);
+    const ambientPosterRef = useRef<HTMLImageElement>(null);
+    const ambientCanvasRef = useRef<HTMLCanvasElement>(null);
+    const edgeCanvasRef = useRef<HTMLCanvasElement>(null);
     const forwardVideoRef = useRef<HTMLVideoElement>(null);
     const reverseVideoRef = useRef<HTMLVideoElement>(null);
+    const paintAmbientRef = useRef<
+      (
+        source: EdgeSource,
+        frame: number,
+        direction: Direction | 0,
+        force?: boolean,
+      ) => void
+    >(() => {});
     const generationRef = useRef(0);
     const displayedFrameRef = useRef(0);
     const activeDirectionRef = useRef<Direction>(1);
+    const hasDecodedFrameRef = useRef(false);
     const readyRef = useRef(false);
     const readyReportedRef = useRef(false);
     const suspendedRef = useRef(false);
     const shouldBePlayingRef = useRef(false);
     const [activeDirection, setActiveDirection] = useState<Direction>(1);
     const [hasDecodedFrame, setHasDecodedFrame] = useState(false);
+
+    useEffect(() => {
+      const ambientPoster = ambientPosterRef.current;
+      const ambient = ambientCanvasRef.current;
+      const edge = edgeCanvasRef.current;
+      if (!ambientPoster || !ambient || !edge) return;
+
+      const showCanvasFallback = (canvas: HTMLCanvasElement) => {
+        canvas.dataset.painted = "false";
+        canvas.dataset.frame = "-1";
+        canvas.dataset.direction = "0";
+        if (canvas === edge) canvas.dataset.axis = "none";
+      };
+      showCanvasFallback(ambient);
+      showCanvasFallback(edge);
+
+      let ambientContext: CanvasRenderingContext2D | null = null;
+      let edgeContext: CanvasRenderingContext2D | null = null;
+      try {
+        ambientContext = ambient.getContext("2d", { alpha: false });
+      } catch {
+        showCanvasFallback(ambient);
+      }
+      try {
+        edgeContext = edge.getContext("2d");
+      } catch {
+        showCanvasFallback(edge);
+      }
+
+      let ambientDirection: Direction | 0 = 0;
+      let edgeDirection: Direction | 0 = 0;
+      let ambientContextLost = false;
+      let edgeContextLost = false;
+      let lastAmbientFrame = Number.NEGATIVE_INFINITY;
+      let lastEdgeFrame = Number.NEGATIVE_INFINITY;
+
+      const paintAmbient = (
+        source: EdgeSource,
+        frame: number,
+        direction: Direction | 0,
+        force = false,
+      ) => {
+        const shouldPaintAmbient =
+          force ||
+          ambientDirection !== direction ||
+          Math.abs(frame - lastAmbientFrame) >= AMBIENT_FRAME_STEP;
+        const shouldPaintEdge =
+          force || edgeDirection !== direction || frame !== lastEdgeFrame;
+
+        if (shouldPaintAmbient && ambientContext && !ambientContextLost) {
+          try {
+            ambientContext.drawImage(
+              source,
+              0,
+              0,
+              ambient.width,
+              ambient.height,
+            );
+            ambient.dataset.painted = "true";
+            ambient.dataset.frame = String(frame);
+            ambient.dataset.direction = String(direction);
+          } catch {
+            showCanvasFallback(ambient);
+          }
+        }
+
+        if (shouldPaintEdge && edgeContext && !edgeContextLost) {
+          try {
+            edge.dataset.axis = paintMirroredEdges(edgeContext, edge, source);
+            edge.dataset.painted = "true";
+            edge.dataset.frame = String(frame);
+            edge.dataset.direction = String(direction);
+          } catch {
+            showCanvasFallback(edge);
+          }
+        }
+
+        if (shouldPaintAmbient) {
+          ambientDirection = direction;
+          lastAmbientFrame = frame;
+        }
+        if (shouldPaintEdge) {
+          edgeDirection = direction;
+          lastEdgeFrame = frame;
+        }
+      };
+
+      paintAmbientRef.current = paintAmbient;
+
+      const paintPosterExtension = () => {
+        if (ambientPoster.naturalWidth) {
+          paintAmbient(ambientPoster, 0, 0, true);
+        }
+      };
+      const handleResize = () => {
+        const activeVideo =
+          activeDirectionRef.current === 1
+            ? forwardVideoRef.current
+            : reverseVideoRef.current;
+        if (hasDecodedFrameRef.current && activeVideo?.videoWidth) {
+          paintAmbient(
+            activeVideo,
+            displayedFrameRef.current,
+            activeDirectionRef.current,
+            true,
+          );
+        } else {
+          paintPosterExtension();
+        }
+      };
+      const handleAmbientContextLost = (event: Event) => {
+        event.preventDefault();
+        ambientContextLost = true;
+        showCanvasFallback(ambient);
+      };
+      const handleAmbientContextRestored = () => {
+        ambientContextLost = false;
+        handleResize();
+      };
+      const handleEdgeContextLost = (event: Event) => {
+        event.preventDefault();
+        edgeContextLost = true;
+        showCanvasFallback(edge);
+      };
+      const handleEdgeContextRestored = () => {
+        edgeContextLost = false;
+        handleResize();
+      };
+
+      ambientPoster.addEventListener("load", paintPosterExtension);
+      ambient.addEventListener("contextlost", handleAmbientContextLost);
+      ambient.addEventListener("contextrestored", handleAmbientContextRestored);
+      edge.addEventListener("contextlost", handleEdgeContextLost);
+      edge.addEventListener("contextrestored", handleEdgeContextRestored);
+      window.addEventListener("resize", handleResize);
+      if (ambientPoster.complete) paintPosterExtension();
+
+      return () => {
+        paintAmbientRef.current = () => {};
+        ambientPoster.removeEventListener("load", paintPosterExtension);
+        ambient.removeEventListener("contextlost", handleAmbientContextLost);
+        ambient.removeEventListener(
+          "contextrestored",
+          handleAmbientContextRestored,
+        );
+        edge.removeEventListener("contextlost", handleEdgeContextLost);
+        edge.removeEventListener("contextrestored", handleEdgeContextRestored);
+        window.removeEventListener("resize", handleResize);
+      };
+    }, []);
+
+    const publishDisplayedFrame = useCallback(
+      (source: HTMLVideoElement, direction: Direction, frame: number) => {
+        displayedFrameRef.current = frame;
+        if (stageRef.current) {
+          stageRef.current.dataset.frame = String(frame);
+          stageRef.current.dataset.direction = String(direction);
+        }
+        paintAmbientRef.current(source, frame, direction);
+        onFrame(frame);
+      },
+      [onFrame],
+    );
 
     const videos = useCallback(() => {
       const forward = forwardVideoRef.current;
@@ -130,7 +539,7 @@ export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
           Math.abs(video.currentTime - mediaTime) < 1 / 48 &&
           video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
         ) {
-          displayedFrameRef.current = sourceFrame;
+          publishDisplayedFrame(video, direction, sourceFrame);
           return;
         }
 
@@ -141,7 +550,7 @@ export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
           };
           const handleSeeked = () => {
             cleanup();
-            displayedFrameRef.current = sourceFrame;
+            publishDisplayedFrame(video, direction, sourceFrame);
             resolve();
           };
           const handleError = () => {
@@ -153,11 +562,12 @@ export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
           video.currentTime = mediaTime;
         });
       },
-      [waitForMetadata],
+      [publishDisplayedFrame, waitForMetadata],
     );
 
     const reveal = useCallback(async (direction: Direction) => {
       activeDirectionRef.current = direction;
+      hasDecodedFrameRef.current = true;
       setActiveDirection(direction);
       setHasDecodedFrame(true);
       await new Promise<void>((resolve) => {
@@ -204,7 +614,7 @@ export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
             }
 
             const frame = mediaTimeToSourceFrame(mediaTime, direction);
-            displayedFrameRef.current = frame;
+            publishDisplayedFrame(video, direction, frame);
             const reached = direction === 1 ? frame >= toFrame : frame <= toFrame;
 
             if (reached) {
@@ -222,7 +632,7 @@ export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
           void cancelFrame;
         });
       },
-      [alignAndReveal, seekToFrame],
+      [alignAndReveal, publishDisplayedFrame, seekToFrame],
     );
 
     const failSafely = useCallback(() => {
@@ -364,6 +774,7 @@ export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
 
     const handleForwardReady = () => {
       readyRef.current = true;
+      if (stageRef.current) stageRef.current.dataset.ready = "true";
       if (!readyReportedRef.current) {
         readyReportedRef.current = true;
         onReady();
@@ -371,7 +782,44 @@ export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
     };
 
     return (
-      <div className="video-stage" aria-hidden="true">
+      <div
+        ref={stageRef}
+        className="video-stage"
+        aria-hidden="true"
+        data-ready="false"
+        data-frame="0"
+        data-direction="0"
+      >
+        <Image
+          ref={ambientPosterRef}
+          className="video-stage__ambient video-stage__ambient-poster"
+          src={POSTER_SOURCE}
+          alt=""
+          width={1920}
+          height={1080}
+          sizes="100vw"
+          priority
+          unoptimized
+        />
+        <canvas
+          ref={ambientCanvasRef}
+          className="video-stage__ambient video-stage__ambient-canvas"
+          width={960}
+          height={540}
+          data-painted="false"
+          data-frame="-1"
+          data-direction="0"
+        />
+        <canvas
+          ref={edgeCanvasRef}
+          className="video-stage__edge-canvas"
+          width={960}
+          height={540}
+          data-painted="false"
+          data-frame="-1"
+          data-direction="0"
+          data-axis="none"
+        />
         <Image
           className={`film-layer film-poster${hasDecodedFrame ? " is-hidden" : ""}`}
           src={POSTER_SOURCE}
@@ -390,6 +838,8 @@ export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
           muted
           playsInline
           disablePictureInPicture
+          data-direction="1"
+          data-active={activeDirection === 1 && hasDecodedFrame}
           onLoadedData={handleForwardReady}
           onError={onError}
         />
@@ -402,6 +852,8 @@ export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
           muted
           playsInline
           disablePictureInPicture
+          data-direction="-1"
+          data-active={activeDirection === -1 && hasDecodedFrame}
           onError={onError}
         />
       </div>

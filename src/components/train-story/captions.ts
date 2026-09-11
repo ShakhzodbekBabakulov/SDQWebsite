@@ -9,6 +9,24 @@ export type Locale = (typeof localeOptions)[number]["locale"];
 
 export const DEFAULT_LOCALE: Locale = "uz-Latn";
 
+export function resolveLocale(
+  preferences: readonly string[] | null | undefined,
+): Locale {
+  for (const preference of preferences ?? []) {
+    const normalized = preference.trim().replaceAll("_", "-").toLowerCase();
+    if (!normalized) continue;
+
+    const [language, script] = normalized.split("-");
+    if (language === "uz") {
+      return script === "cyrl" ? "uz-Cyrl" : "uz-Latn";
+    }
+    if (language === "ru") return "ru";
+    if (language === "en") return "en";
+  }
+
+  return DEFAULT_LOCALE;
+}
+
 type StandardCaption = { headline: string; body: string };
 type ContactCaption = { headline: string; action: string };
 

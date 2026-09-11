@@ -1,42 +1,54 @@
-# Multilingual Train Story Captions
+# Apple-Style Film Background and Automatic Language Selection
 
 ## Summary
 
-Add the approved captions across all six resting carriages. Scenes 1–5 use a centered headline beneath the overhead light and a supporting sentence on the ground below the carriage. Scene 6 uses its open right-hand space for a larger contact composition with phone, email, and homepage links. Uzbek Latin remains the default, all four approved languages are supported, and captions remain desktop-only.
+Match the proven `babakulov.live` film treatment while preserving the SDQ train’s full 16:9 composition. Add automatic browser-language selection, a tiny top-right language dropdown, and the exact greeting **“Assalomu Aleykum”** during the opening arrival.
 
 ## Implementation Changes
 
-1. Keep every scene's approved multilingual content in a reusable carriage-based structure that distinguishes standard captions from the final contact scene.
-2. Show the matching caption only after its carriage settles, hide captions while the train travels, and restore the correct caption whenever a scene returns.
-3. Add an upper-right language control with `UZ`, `ЎЗ`, `RU`, and `EN`; changing the language also updates the page language for accessibility.
-4. Place the headline beneath the overhead light and the supporting sentence below the carriage, without a panel, fog, or artificial glow behind either line.
-5. Match SDQ's existing typography by using Montserrat for the headline and Manrope for the supporting sentence and language control. Keep the headline navy, enlarge the supporting sentence, and use a deep teal derived from the carriage trim for readable branded contrast.
-6. Constrain both captions to an invisible centered 16:9 frame that always matches the visible film, including taller and ultrawide desktop windows.
-7. Give Scene 6 a larger right-side contact layout with clickable phone and email details and a localized homepage action, all contained within the visible film.
-8. Keep the mobile poster and train animation unchanged.
+- Adapt the reference site’s background system into the train’s video stage:
+  - Keep the main film sharp and fully visible.
+  - Extend its nearest edges into unused screen space.
+  - Add a darker, softly blurred copy behind the extension.
+  - Synchronize the extension with the poster and both forward/reverse videos.
+  - Fall back safely to the blurred poster if live canvas painting fails.
+- Add a dedicated opening greeting inside the film:
+  - Display **“Assalomu Aleykum”** for every visitor, independent of language.
+  - Show it only during the initial train arrival.
+  - Begin fading around frame 84 and finish before frame 96; the first carriage settles at frame 108.
+  - Skip it when reduced-motion mode skips the arrival animation.
+- Detect the first supported language from the browser’s ordered preferences:
+  - `uz-Cyrl` → Uzbek Cyrillic.
+  - Other Uzbek variants, including plain `uz` → Uzbek Latin.
+  - Russian variants → Russian.
+  - English variants → English.
+  - Unsupported languages → Uzbek Latin.
+- Replace the four always-visible language buttons with a small `UZ`, `ЎЗ`, `RU`, or `EN` label in the film’s top-right corner.
+  - Idle appearance: plain, subtle Manrope text with no prominent panel.
+  - Hover, keyboard focus, or click reveals a compact right-aligned dropdown.
+  - Selection updates the captions and page language, then closes the dropdown.
+  - Manual selection remains active between train scenes but is not stored after refresh.
+- Keep the mobile poster-only experience unchanged.
 
-## Internal Structure
+## Interfaces and Files
 
-- Use four explicit locale identifiers for Uzbek Latin, Uzbek Cyrillic, Russian, and English.
-- Keep each locale's headline and supporting sentence together in a structure that later scenes can reuse.
-- Do not add a public API, database, external service, or permanent language preference.
+- Update the train video stage to report displayed frames so the greeting and background remain synchronized.
+- Work within `src/components/train-story/*`, `src/app/globals.css`, `tests/*`, and the project plan.
+- Add no package, external service, public API, route, or new media asset.
 
 ## Test and Acceptance Plan
 
-- Confirm Uzbek Latin appears by default after the first carriage settles.
-- Confirm each language button displays the approved headline and sentence and updates the page language.
-- Confirm the caption hides during travel and returns when Scene 1 comes back.
-- Confirm the caption is absent from the static mobile experience.
-- Confirm the headline and supporting sentence stay fully inside the visible 16:9 film at non-16:9 desktop window sizes.
-- Confirm Scene 2 appears only after the 1C carriage settles, supports all four approved translations, and preserves the visitor's selected language from Scene 1.
-- Confirm Scenes 3–5 show their approved headline and supporting sentence in every language and preserve the selected language between carriages.
-- Confirm Scene 6 uses the right-hand negative space, uses larger typography, stays inside the film, and exposes the correct phone, email, and homepage links.
-- Confirm keyboard access, reduced-motion behavior, existing scrolling behavior, linting, automated tests, and the production build all pass.
+- Verify the main film still uses contain framing while horizontal and vertical empty bands receive synchronized extensions.
+- Test poster fallback, moving frames, reverse playback, resizing, and canvas failure without interrupting the train.
+- Confirm the greeting uses the exact approved spelling, appears during arrival, and is gone before the first carriage stops.
+- Test automatic selection for Uzbek Latin, Uzbek Cyrillic, Russian, English, ordered browser preferences, and unsupported languages.
+- Confirm the compact selector’s hover, keyboard, click, focus, and selected-language behavior.
+- Confirm it remains inside the film’s top-right corner at standard, tall, and ultrawide desktop sizes.
+- Run unit tests, browser tests, linting, and the production build.
 
 ## Assumptions
 
-- The English wording embedded in the video remains unchanged.
-- The language control stays visible on desktop while the caption itself follows Scene 1.
-- Refreshing the page returns to Uzbek Latin.
-- Scenes 1–5 share the established typography and placement.
-- Scene 6 uses +998 55 588 90 00, info@sdq-sfb.com, and https://sdq-sfb.com/.
+- “First scene” means the initial page-load arrival only, not the later loop from the final carriage back to the first.
+- The translated first-carriage business caption appears normally after the greeting has faded.
+- Browser language is re-detected on every refresh; no cookie or local storage is added.
+- The installed Vercel CLI upgrade is separate from this change. Version 59.13.1 should be upgraded to 59.16.0 or newer with `npm i -g vercel@latest` for best compatibility.
