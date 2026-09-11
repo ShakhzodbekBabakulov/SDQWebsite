@@ -11,6 +11,7 @@ export type Chapter = {
   startFrame: number;
   centreFrame: number;
   endFrame: number;
+  restingRate?: number;
 };
 
 export const chapters = [
@@ -48,6 +49,7 @@ export const chapters = [
     startFrame: 504,
     centreFrame: 512,
     endFrame: 519,
+    restingRate: 0.875,
   },
   {
     id: "lets-talk",
@@ -55,11 +57,18 @@ export const chapters = [
     startFrame: 606,
     centreFrame: 624,
     endFrame: 642,
+    restingRate: 0.875,
   },
 ] as const satisfies readonly Chapter[];
 
 export const frameToSeconds = (frame: number) => frame / FPS;
 
 export const loopPlaybackRate = (chapter: Chapter) =>
+  chapter.restingRate ??
   ((chapter.endFrame - chapter.startFrame) / FPS) /
-  (LOOP_DURATION_MS / 2 / 1_000);
+    (LOOP_DURATION_MS / 2 / 1_000);
+
+export const loopDurationMs = (chapter: Chapter) =>
+  (((chapter.endFrame - chapter.startFrame) / FPS) /
+    loopPlaybackRate(chapter)) *
+  2_000;

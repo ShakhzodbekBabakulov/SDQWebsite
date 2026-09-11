@@ -39,14 +39,33 @@ test("the approved six carriage ranges are the source of truth", () => {
   );
 });
 
-test("every resting range makes one forward-and-back trip in exactly four seconds", () => {
+test("the first four resting ranges make one forward-and-back trip in exactly four seconds", () => {
   assert.equal(LOOP_DURATION_MS, 4_000);
 
-  for (const chapter of chapters) {
+  for (const chapter of chapters.slice(0, 4)) {
     const framesPerLeg = chapter.endFrame - chapter.startFrame;
     const secondsPerLeg = framesPerLeg / FPS / loopPlaybackRate(chapter);
     assert.equal(secondsPerLeg * 2 * 1_000, LOOP_DURATION_MS);
   }
+});
+
+test("the final two resting loops preserve their natural playback speed", () => {
+  const controller = createPlaybackController({ startAtRest: true });
+  controller.jump("last", 1_000);
+  controller.releaseGesture(1_000 + INPUT_IDLE_MS);
+
+  controller.intent(-1, 80, 1_500, 624);
+  const aiLoop = controller.complete(519, 5_000);
+  assert.equal(aiLoop?.type, "loop");
+  assert.equal(aiLoop?.rate, 0.875);
+  assert.ok(Math.abs(aiLoop.durationMs - 10_000 / 7) < 0.001);
+
+  controller.releaseGesture(5_000);
+  controller.intent(1, 80, 5_500, 512);
+  const contactLoop = controller.complete(606, 9_000);
+  assert.equal(contactLoop?.type, "loop");
+  assert.equal(contactLoop?.rate, 0.875);
+  assert.ok(Math.abs(contactLoop.durationMs - 24_000 / 7) < 0.001);
 });
 
 test("wheel input is normalized without stealing zoom or horizontal gestures", () => {

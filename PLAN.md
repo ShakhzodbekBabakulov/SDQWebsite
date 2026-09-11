@@ -11,7 +11,7 @@ This session delivers only the film and scrolling mechanics. No visible headline
 1. Create private version history and an official Next.js App Router project using TypeScript, ESLint, standard CSS, and no animation or scrolling library.
 2. Preserve the approved master outside the public website and create matching forward and reverse H.264 browser movies plus an opening poster.
 3. Define six chapter ranges: SDQ 108-132 (centre 120), 1C 228-258 (centre 243), partnerships 324-354 (centre 339), support 408-432 (centre 420), AI 504-519 (centre 512), and contact 606-642 (centre 624).
-4. Give every chapter an exact four-second forward/back resting loop.
+4. Give the first four chapters an exact four-second forward/back resting loop. Keep AI and contact at their natural 0.875x playback speed within the confirmed open-carriage ranges.
 5. Auto-play the opening arrival to SDQ, then allow exactly one adjacent carriage per deliberate gesture.
 6. Let continued gesture momentum adjust travel speed only within 1.10x-1.20x; it must never select another carriage.
 7. Reverse immediately from the visible frame when opposite input arrives during travel.
@@ -30,7 +30,7 @@ This session delivers only the film and scrolling mechanics. No visible headline
 
 ## Test and Acceptance Plan
 
-- Unit-test input normalization, bounded speed, exact loop timing, gesture locking, reversal, boundaries, wrapping, reduced motion, and keyboard controls.
+- Unit-test input normalization, bounded speed, four-second default loop timing, natural final-scene speed, gesture locking, reversal, boundaries, wrapping, reduced motion, and keyboard controls.
 - Verify both browser movies decode completely and match the master dimensions, duration, frame count, and forward/reverse mapping.
 - Verify a production build in Chrome, Firefox, and WebKit-sized desktop environments, including laptop, standard desktop, and ultrawide framing.
 - Assert zero page movement, one visible movie, no chapter skipping, no black frames or flashes, and no browser errors.
@@ -40,6 +40,6 @@ This session delivers only the film and scrolling mechanics. No visible headline
 ## Assumptions
 
 - English chapter labels appear only in invisible accessibility announcements.
-- Resting loops last four seconds and a gesture ends after 180ms without wheel signals.
+- The first four resting loops last four seconds, the final two preserve 0.875x natural playback, and a gesture ends after 180ms without wheel signals.
 - The six approved still images remain reference material; the website displays the film.
 - The accepted master remains unchanged and is the source of truth for final frame confirmation.

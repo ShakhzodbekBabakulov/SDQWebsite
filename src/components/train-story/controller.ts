@@ -2,9 +2,9 @@ import { travelPlaybackRate, type Direction } from "./input.ts";
 import {
   INPUT_IDLE_MS,
   LAST_FRAME,
-  LOOP_DURATION_MS,
   MIN_TRAVEL_RATE,
   chapters,
+  loopDurationMs,
   loopPlaybackRate,
 } from "./timeline.ts";
 
@@ -56,7 +56,7 @@ const restingLoop = (chapterIndex: number): PlaybackCommand => {
     startFrame: chapter.startFrame,
     endFrame: chapter.endFrame,
     rate: loopPlaybackRate(chapter),
-    durationMs: LOOP_DURATION_MS,
+    durationMs: loopDurationMs(chapter),
   };
 };
 
