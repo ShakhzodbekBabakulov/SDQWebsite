@@ -67,7 +67,10 @@ async function waitForStageFrame(
   );
 }
 
-async function finishWrapDepartureForTest(page: Page) {
+// Headless WebKit can stop presenting local video frames under parallel decoder
+// load. This setup helper isolates greeting-state coverage there; Chromium and
+// Firefox deliberately complete the same wrap journeys without media repair.
+async function stabilizeWebKitDecoderForGreetingWrapTest(page: Page) {
   await page.waitForFunction(
     () => Number(document.querySelector(".video-stage")?.getAttribute("data-frame")) > 624,
   );
@@ -287,6 +290,7 @@ test("the opening greeting stays above the train in short desktop films", async 
 });
 
 test("skipping the first arrival cannot revive the greeting during a later wrap", async ({
+  browserName,
   page,
 }) => {
   test.setTimeout(30_000);
@@ -302,12 +306,15 @@ test("skipping the first arrival cannot revive the greeting during a later wrap"
   await page.keyboard.press("ArrowDown");
   await page.waitForTimeout(500);
   await page.keyboard.press("ArrowDown");
-  await finishWrapDepartureForTest(page);
+  if (browserName === "webkit") {
+    await stabilizeWebKitDecoderForGreetingWrapTest(page);
+  }
   await waitForStageFrame(page, 0, 72);
   await expect(greeting).toHaveCount(0);
 });
 
 test("Home during the first arrival permanently disarms the greeting", async ({
+  browserName,
   page,
 }) => {
   test.setTimeout(30_000);
@@ -332,7 +339,9 @@ test("Home during the first arrival permanently disarms the greeting", async ({
   await page.keyboard.press("ArrowDown");
   await page.waitForTimeout(500);
   await page.keyboard.press("ArrowDown");
-  await finishWrapDepartureForTest(page);
+  if (browserName === "webkit") {
+    await stabilizeWebKitDecoderForGreetingWrapTest(page);
+  }
   await waitForStageFrame(page, 0, 72);
   await expect(greeting).toHaveCount(0);
 });
