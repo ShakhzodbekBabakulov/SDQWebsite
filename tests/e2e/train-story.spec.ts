@@ -108,10 +108,86 @@ test("the opening greeting appears only during the first arrival and fades befor
   await expect(greeting).toBeHidden();
   await waitForVisibleChapterFrame(page, 108, 132);
   await expect(greeting).toHaveCount(0);
+});
+
+test("the opening greeting dominates the clear upper space and fades gradually", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  const greeting = page.getByText("Assalomu Aleykum", { exact: true });
+  await expect(greeting).toBeVisible();
+
+  const layout = await greeting.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    const frame = element.parentElement!.getBoundingClientRect();
+    return {
+      fontSize: Number.parseFloat(getComputedStyle(element).fontSize),
+      widthRatio: bounds.width / frame.width,
+      top: bounds.top,
+      bottom: bounds.bottom,
+      filmTop: frame.top,
+      trainRoofLine: frame.top + frame.height * 0.29,
+    };
+  });
+  expect(layout.fontSize).toBeGreaterThanOrEqual(72);
+  expect(layout.widthRatio).toBeGreaterThanOrEqual(0.8);
+  expect(layout.top).toBeGreaterThanOrEqual(layout.filmTop);
+  expect(layout.bottom).toBeLessThanOrEqual(layout.trainRoofLine);
+
+  await page.evaluate(() => {
+    const samples: Array<{ frame: number; opacity: number }> = [];
+    (
+      window as typeof window & {
+        __greetingFadeSamples: Array<{ frame: number; opacity: number }>;
+      }
+    ).__greetingFadeSamples = samples;
+    const sample = () => {
+      const stage = document.querySelector(".video-stage");
+      const message = document.querySelector(".opening-greeting");
+      const frame = Number(stage?.getAttribute("data-frame"));
+      if (message && frame >= 84 && frame <= 95.5) {
+        samples.push({
+          frame,
+          opacity: Number.parseFloat(getComputedStyle(message).opacity),
+        });
+      }
+      if (frame < 96) requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+  });
+  await waitForVisibleChapterFrame(page, 96, 107);
+  const samples = await page.evaluate(
+    () =>
+      (
+        window as typeof window & {
+          __greetingFadeSamples: Array<{ frame: number; opacity: number }>;
+        }
+      ).__greetingFadeSamples,
+  );
+  const opacities = samples.map((sample) => sample.opacity);
+  expect(Math.max(...opacities)).toBeGreaterThan(0.55);
+  expect(Math.min(...opacities)).toBeLessThan(0.8);
+  expect(Math.max(...opacities) - Math.min(...opacities)).toBeGreaterThan(0.1);
+  expect(opacities.some((opacity) => opacity > 0.02 && opacity < 0.95)).toBe(
+    true,
+  );
+  await expect(greeting).toBeHidden();
+});
+
+test("skipping the first arrival cannot revive the greeting during a later wrap", async ({
+  page,
+}) => {
+  test.setTimeout(30_000);
+  await page.goto("/");
+  const greeting = page.getByText("Assalomu Aleykum", { exact: true });
+  await expect(greeting).toBeVisible();
 
   await page.keyboard.press("End");
-  await waitForVisibleChapterFrame(page, 624, 624);
-  await page.waitForTimeout(400);
+  await expect(chapterAnnouncement(page)).toHaveText("Let’s Talk");
+  await expect(greeting).toHaveCount(0);
+
+  await page.waitForTimeout(1_000);
   await page.keyboard.press("ArrowDown");
   await expect(chapterAnnouncement(page)).toHaveText("SDQ consulting", {
     timeout: 12_000,
@@ -164,6 +240,7 @@ test("the compact language control reveals options and closes after selection, E
   await expect(options).toHaveCount(0);
   await expect(page.locator("html")).toHaveAttribute("lang", "ru");
 
+  await current.evaluate((button) => (button as HTMLButtonElement).blur());
   await current.focus();
   await expect(options).toBeVisible();
   await page.keyboard.press("Escape");
@@ -181,6 +258,86 @@ test("the compact language control reveals options and closes after selection, E
   await expect(options).toHaveCount(0);
   await page.locator('[data-test-focus-outside="true"]').evaluate((outside) =>
     outside.remove(),
+  );
+});
+
+test("closing from a focused language option restores focus to the current language", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const current = page.locator(".language-switcher__current");
+  const options = page.locator(".language-switcher__options");
+
+  await current.focus();
+  await options.getByRole("button", { name: "RU", exact: true }).focus();
+  await page.keyboard.press("Escape");
+  await expect(options).toHaveCount(0);
+  await expect(current).toBeFocused();
+
+  await current.click();
+  await options.getByRole("button", { name: "EN", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(current).toHaveText("EN");
+  await expect(options).toHaveCount(0);
+  await expect(current).toBeFocused();
+});
+
+test("the language selector stays plain text when idle and unfolded", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const control = page.locator(".language-switcher__control");
+  const current = page.locator(".language-switcher__current");
+
+  const idleStyle = await control.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      background: style.backgroundColor,
+      border: style.borderWidth,
+      shadow: style.boxShadow,
+    };
+  });
+  expect(idleStyle).toEqual({
+    background: "rgba(0, 0, 0, 0)",
+    border: "0px",
+    shadow: "none",
+  });
+
+  await current.click();
+  const unfoldedStyle = await control.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      background: style.backgroundColor,
+      border: style.borderWidth,
+      shadow: style.boxShadow,
+      backdrop: style.backdropFilter,
+    };
+  });
+  expect(unfoldedStyle).toEqual({
+    background: "rgba(0, 0, 0, 0)",
+    border: "0px",
+    shadow: "none",
+    backdrop: "none",
+  });
+
+  const optionStyles = await page
+    .locator(".language-switcher__options button")
+    .evaluateAll((buttons) =>
+      buttons.map((button) => {
+        const style = getComputedStyle(button);
+        return {
+          background: style.backgroundColor,
+          border: style.borderWidth,
+          shadow: style.boxShadow,
+        };
+      }),
+    );
+  expect(optionStyles).toEqual(
+    Array.from({ length: 4 }, () => ({
+      background: "rgba(0, 0, 0, 0)",
+      border: "0px",
+      shadow: "none",
+    })),
   );
 });
 
@@ -289,6 +446,24 @@ test("desktop ambience paints the current frame and extends tall and ultrawide m
     expect(presentation.edgeHeight).toBeLessThanOrEqual(1440);
     expect(presentation.objectFit).toBe("contain");
   }
+});
+
+test("a late poster load cannot replace the active paused video frame", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  const ambient = page.locator(".video-stage__ambient-canvas");
+  await expect(page.locator(".video-stage")).toHaveAttribute("data-frame", "120");
+  await expect(ambient).toHaveAttribute("data-frame", "120");
+  await expect(ambient).toHaveAttribute("data-direction", "1");
+
+  await page
+    .locator(".video-stage__ambient-poster")
+    .dispatchEvent("load");
+
+  await expect(ambient).toHaveAttribute("data-frame", "120");
+  await expect(ambient).toHaveAttribute("data-direction", "1");
 });
 
 test("canvas painting failure falls back to the ambient poster without stopping the film", async ({
@@ -430,6 +605,62 @@ test("scene one keeps its captions inside the film on a taller desktop", async (
   expect(layout.bodyLeft).toBeGreaterThanOrEqual(layout.filmLeft);
   expect(layout.bodyRight).toBeLessThanOrEqual(layout.filmRight);
   expect(layout.bodyBottom).toBeLessThanOrEqual(layout.filmBottom);
+});
+
+test("the Partners wording stays centered and contained in every language", async ({
+  page,
+}) => {
+  test.setTimeout(35_000);
+  await page.setViewportSize({ width: 768, height: 768 });
+  await page.goto("/");
+  await waitForVisibleChapterFrame(page, 108, 132);
+  await travelForwardOneChapter(page, 228, 258);
+  await travelForwardOneChapter(page, 324, 354);
+
+  for (const language of ["UZ", "ЎЗ", "RU", "EN"] as const) {
+    await chooseLanguage(page, language);
+    const layout = await page.locator(".scene-caption").evaluate((caption) => {
+      const heading = caption.querySelector("h2") as HTMLElement;
+      const body = caption.querySelector("p") as HTMLElement;
+      const headingBounds = heading.getBoundingClientRect();
+      const bodyBounds = body.getBoundingClientRect();
+      const filmBounds = caption.getBoundingClientRect();
+      const centralTop = filmBounds.top + filmBounds.height * 0.25;
+      const centralBottom = filmBounds.bottom - filmBounds.height * 0.25;
+      return {
+        filmCenter: filmBounds.left + filmBounds.width / 2,
+        headingCenter: headingBounds.left + headingBounds.width / 2,
+        headingCenterY: headingBounds.top + headingBounds.height / 2,
+        headingLeft: headingBounds.left,
+        headingRight: headingBounds.right,
+        headingFits: heading.scrollWidth <= heading.clientWidth + 1,
+        headingWhiteSpace: getComputedStyle(heading).whiteSpace,
+        bodyCenter: bodyBounds.left + bodyBounds.width / 2,
+        bodyCenterY: bodyBounds.top + bodyBounds.height / 2,
+        bodyLeft: bodyBounds.left,
+        bodyRight: bodyBounds.right,
+        bodyFits: body.scrollWidth <= body.clientWidth + 1,
+        filmLeft: filmBounds.left,
+        filmRight: filmBounds.right,
+        centralTop,
+        centralBottom,
+      };
+    });
+
+    expect(Math.abs(layout.headingCenter - layout.filmCenter)).toBeLessThan(2);
+    expect(Math.abs(layout.bodyCenter - layout.filmCenter)).toBeLessThan(2);
+    expect(layout.headingCenterY).toBeGreaterThanOrEqual(layout.centralTop);
+    expect(layout.headingCenterY).toBeLessThanOrEqual(layout.centralBottom);
+    expect(layout.bodyCenterY).toBeGreaterThanOrEqual(layout.centralTop);
+    expect(layout.bodyCenterY).toBeLessThanOrEqual(layout.centralBottom);
+    expect(layout.headingLeft).toBeGreaterThanOrEqual(layout.filmLeft);
+    expect(layout.headingRight).toBeLessThanOrEqual(layout.filmRight);
+    expect(layout.bodyLeft).toBeGreaterThanOrEqual(layout.filmLeft);
+    expect(layout.bodyRight).toBeLessThanOrEqual(layout.filmRight);
+    expect(layout.headingFits).toBe(true);
+    expect(layout.bodyFits).toBe(true);
+    expect(layout.headingWhiteSpace).toBe("normal");
+  }
 });
 
 test("scene one captions use the film without an artificial fog layer", async ({

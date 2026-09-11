@@ -127,13 +127,13 @@ video.film-layer {
 
 .opening-greeting {
   position: absolute;
-  top: clamp(1.25rem, 3vh, 2.25rem);
-  left: 18%;
-  width: 64%;
+  top: 8%;
+  left: 6%;
+  width: 88%;
   margin: 0;
   color: var(--sdq-navy);
   font-family: var(--font-sdq-heading), Montserrat, sans-serif;
-  font-size: clamp(2rem, 3.3vw, 3.8rem);
+  font-size: clamp(3.5rem, 6vw, 6.75rem);
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.035em;
@@ -202,6 +202,28 @@ video.film-layer {
   text-align: center;
   text-wrap: balance;
   transform: translateX(-50%);
+}
+
+.scene-caption.is-partners {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.9rem, 2.5vh, 1.6rem);
+  align-items: center;
+  justify-content: center;
+  padding: 6%;
+}
+
+.scene-caption.is-partners > h2,
+.scene-caption.is-partners > p {
+  position: static;
+  left: auto;
+  transform: none;
+}
+
+.scene-caption.is-partners > h2 {
+  white-space: normal;
+  text-wrap: balance;
 }
 
 .scene-caption.is-contact {
@@ -302,12 +324,6 @@ video.film-layer {
   pointer-events: auto;
 }
 
-.language-switcher__control.is-open {
-  background: rgba(255, 253, 248, 0.74);
-  box-shadow: 0 0.35rem 1.1rem rgba(13, 49, 93, 0.1);
-  backdrop-filter: blur(8px);
-}
-
 .language-switcher button {
   min-width: 2.5rem;
   height: 1.9rem;
@@ -329,14 +345,22 @@ video.film-layer {
 
 .language-switcher__options {
   display: grid;
+  gap: 0.08rem;
   justify-items: end;
-  margin-top: 0.08rem;
+  margin-top: 0.16rem;
+}
+
+.language-switcher__options button {
+  opacity: 0.58;
+  transition:
+    color 160ms ease-out,
+    opacity 160ms ease-out;
 }
 
 .language-switcher__options button:hover,
 .language-switcher__options button[aria-pressed="true"] {
-  background: rgba(13, 49, 93, 0.09);
   color: var(--sdq-deep-teal);
+  opacity: 1;
 }
 
 .language-switcher button:focus-visible {

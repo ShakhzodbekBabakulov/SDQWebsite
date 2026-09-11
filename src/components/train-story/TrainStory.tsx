@@ -39,6 +39,9 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
   const mainRef = useRef<HTMLElement>(null);
   const stageRef = useRef<VideoStageHandle>(null);
   const languageControlRef = useRef<HTMLDivElement>(null);
+  const languageTriggerRef = useRef<HTMLButtonElement>(null);
+  const restoreLanguageFocusRef = useRef(false);
+  const suppressLanguageOpenRef = useRef(false);
   const [controller] = useState(() =>
     desktopFilm ? createPlaybackController({ reducedMotion }) : null,
   );
@@ -109,7 +112,7 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
   );
 
   const handleFrame = useCallback((frame: number) => {
-    const progress = Math.max(
+    const linearProgress = Math.max(
       0,
       Math.min(
         1,
@@ -117,6 +120,8 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
           (GREETING_FADE_END_FRAME - GREETING_FADE_START_FRAME),
       ),
     );
+    const progress =
+      linearProgress * linearProgress * (3 - 2 * linearProgress);
     mainRef.current?.style.setProperty(
       "--opening-greeting-exit",
       progress.toFixed(4),
@@ -130,6 +135,14 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
       document.documentElement.lang = "en";
     };
   }, [desktopFilm, locale]);
+
+  useEffect(() => {
+    if (languageOpen || !restoreLanguageFocusRef.current) return;
+    suppressLanguageOpenRef.current = true;
+    languageTriggerRef.current?.focus();
+    suppressLanguageOpenRef.current = false;
+    restoreLanguageFocusRef.current = false;
+  }, [languageOpen]);
 
   useEffect(() => {
     if (!desktopFilm) return;
@@ -175,6 +188,9 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
       if (mediaFailed) stage.retry();
 
       if (intent === "first" || intent === "last") {
+        if (controller.snapshot().phase === "opening") {
+          setShowOpeningGreeting(false);
+        }
         apply(controller.jump(intent, performance.now()));
         finishGestureLater();
         return;
@@ -239,9 +255,14 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
   const currentLocale =
     localeOptions.find((option) => option.locale === locale) ?? localeOptions[0];
 
+  const closeLanguageAndRestoreFocus = () => {
+    restoreLanguageFocusRef.current = true;
+    setLanguageOpen(false);
+  };
+
   const selectLocale = (nextLocale: Locale) => {
     setLocale(nextLocale);
-    setLanguageOpen(false);
+    closeLanguageAndRestoreFocus();
   };
 
   return (
@@ -272,7 +293,7 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
             </div>
           ) : null}
           <section
-            className={`scene-caption${activeCaption ? " is-visible" : ""}${activeCaption?.kind === "contact" ? " is-contact" : ""}`}
+            className={`scene-caption${activeCaption ? " is-visible" : ""}${captionChapterIndex === 2 ? " is-partners" : ""}${activeCaption?.kind === "contact" ? " is-contact" : ""}`}
             aria-hidden={!activeCaption}
           >
             {activeCaption?.kind === "standard" ? (
@@ -310,7 +331,9 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
                   setLanguageOpen(false);
                 }
               }}
-              onFocus={() => setLanguageOpen(true)}
+              onFocus={() => {
+                if (!suppressLanguageOpenRef.current) setLanguageOpen(true);
+              }}
               onBlur={(event) => {
                 if (!event.currentTarget.contains(event.relatedTarget)) {
                   setLanguageOpen(false);
@@ -320,11 +343,12 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
                 if (event.key === "Escape") {
                   event.preventDefault();
                   event.stopPropagation();
-                  setLanguageOpen(false);
+                  closeLanguageAndRestoreFocus();
                 }
               }}
             >
               <button
+                ref={languageTriggerRef}
                 type="button"
                 className="language-switcher__current"
                 aria-label={`Current language: ${currentLocale.label}`}

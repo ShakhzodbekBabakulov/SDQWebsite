@@ -406,11 +406,6 @@ export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
       paintAmbientRef.current = paintAmbient;
 
       const paintPosterExtension = () => {
-        if (ambientPoster.naturalWidth) {
-          paintAmbient(ambientPoster, 0, 0, true);
-        }
-      };
-      const handleResize = () => {
         const activeVideo =
           activeDirectionRef.current === 1
             ? forwardVideoRef.current
@@ -422,9 +417,12 @@ export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
             activeDirectionRef.current,
             true,
           );
-        } else {
-          paintPosterExtension();
+        } else if (ambientPoster.naturalWidth) {
+          paintAmbient(ambientPoster, 0, 0, true);
         }
+      };
+      const handleResize = () => {
+        paintPosterExtension();
       };
       const handleAmbientContextLost = (event: Event) => {
         event.preventDefault();

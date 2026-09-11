@@ -15,7 +15,9 @@ Match the proven `babakulov.live` film treatment while preserving the SDQ train�
 - Add a dedicated opening greeting inside the film:
   - Display **“Assalomu Aleykum”** for every visitor, independent of language.
   - Show it only during the initial train arrival.
+  - Make it the dominant opening typography, scaling it across the available negative space without covering the arriving train.
   - Begin fading around frame 84 and finish before frame 96; the first carriage settles at frame 108.
+  - Use a soft, gradual opacity fade rather than an abrupt disappearance.
   - Skip it when reduced-motion mode skips the arrival animation.
 - Detect the first supported language from the browser’s ordered preferences:
   - `uz-Cyrl` → Uzbek Cyrillic.
@@ -24,11 +26,12 @@ Match the proven `babakulov.live` film treatment while preserving the SDQ train�
   - English variants → English.
   - Unsupported languages → Uzbek Latin.
 - Replace the four always-visible language buttons with a small `UZ`, `ЎЗ`, `RU`, or `EN` label in the film’s top-right corner.
-  - Idle appearance: plain, subtle Manrope text with no prominent panel.
+  - Use plain text only: no border, frame, filled background, panel, or shadow in either the resting or unfolded state.
   - Hover, keyboard focus, or click reveals a compact right-aligned dropdown.
   - Selection updates the captions and page language, then closes the dropdown.
   - Manual selection remains active between train scenes but is not stored after refresh.
 - Keep the mobile poster-only experience unchanged.
+- Center the Partners scene wording within the film and let long translations wrap safely instead of overflowing to the right.
 
 ## Interfaces and Files
 
@@ -41,9 +44,12 @@ Match the proven `babakulov.live` film treatment while preserving the SDQ train�
 - Verify the main film still uses contain framing while horizontal and vertical empty bands receive synchronized extensions.
 - Test poster fallback, moving frames, reverse playback, resizing, and canvas failure without interrupting the train.
 - Confirm the greeting uses the exact approved spelling, appears during arrival, and is gone before the first carriage stops.
+- Confirm the greeting fills the opening scene’s usable empty space without covering the arriving train and fades gently.
 - Test automatic selection for Uzbek Latin, Uzbek Cyrillic, Russian, English, ordered browser preferences, and unsupported languages.
 - Confirm the compact selector’s hover, keyboard, click, focus, and selected-language behavior.
+- Confirm the selector remains plain text without a border, frame, background, panel, or shadow while closed and unfolded.
 - Confirm it remains inside the film’s top-right corner at standard, tall, and ultrawide desktop sizes.
+- Confirm every Partners translation is visually centered and remains inside the film.
 - Run unit tests, browser tests, linting, and the production build.
 
 ## Assumptions
