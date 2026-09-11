@@ -3,6 +3,17 @@
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import {
+  captionsByChapter,
+  CONTACT_EMAIL,
+  CONTACT_EMAIL_HREF,
+  CONTACT_HOMEPAGE,
+  CONTACT_PHONE_HREF,
+  CONTACT_PHONE_LABEL,
+  DEFAULT_LOCALE,
+  localeOptions,
+  type Locale,
+} from "./captions.ts";
 import { createPlaybackController } from "./controller.ts";
 import { keyboardIntent, normalizeWheel } from "./input.ts";
 import { chapters, INPUT_IDLE_MS } from "./timeline.ts";
@@ -28,12 +39,30 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
   );
   const gestureTimerRef = useRef<number | null>(null);
   const [chapterLabel, setChapterLabel] = useState<string>(chapters[0].label);
+  const [captionChapterIndex, setCaptionChapterIndex] = useState<number | null>(
+    null,
+  );
+  const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
   const [mediaFailed, setMediaFailed] = useState(false);
   const [userPaused, setUserPaused] = useState(false);
 
   const apply = useCallback(
     (command: Parameters<VideoStageHandle["apply"]>[0] | null) => {
       if (!command) return;
+      if (command.type === "play" || command.type === "cut-and-play") {
+        setCaptionChapterIndex(null);
+      } else if (
+        (command.type === "loop" || command.type === "hold") &&
+        controller
+      ) {
+        const snapshot = controller.snapshot();
+        setCaptionChapterIndex(
+          snapshot.phase === "resting" &&
+            captionsByChapter[snapshot.chapterIndex]
+            ? snapshot.chapterIndex
+            : null,
+        );
+      }
       stageRef.current?.apply(command);
       if (command.type === "hold" && controller) {
         setChapterLabel(chapters[controller.snapshot().chapterIndex].label);
@@ -58,6 +87,14 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
     },
     [apply, controller],
   );
+
+  useEffect(() => {
+    if (!desktopFilm) return;
+    document.documentElement.lang = locale;
+    return () => {
+      document.documentElement.lang = "en";
+    };
+  }, [desktopFilm, locale]);
 
   useEffect(() => {
     if (!desktopFilm) return;
@@ -160,6 +197,11 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
     };
   }, [apply, controller, desktopFilm, mediaFailed, userPaused]);
 
+  const activeCaption =
+    captionChapterIndex === null
+      ? null
+      : (captionsByChapter[captionChapterIndex] ?? null);
+
   return (
     <main className="train-story">
       <h1 className="sr-only">SDQ Management Advisory Group</h1>
@@ -172,12 +214,54 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
       </p>
 
       {desktopFilm ? (
-        <VideoStage
-          ref={stageRef}
-          onReady={handleReady}
-          onComplete={handleComplete}
-          onError={() => setMediaFailed(true)}
-        />
+        <>
+          <VideoStage
+            ref={stageRef}
+            onReady={handleReady}
+            onComplete={handleComplete}
+            onError={() => setMediaFailed(true)}
+          />
+          <section
+            className={`scene-caption${activeCaption ? " is-visible" : ""}${activeCaption?.kind === "contact" ? " is-contact" : ""}`}
+            aria-hidden={!activeCaption}
+          >
+            {activeCaption?.kind === "standard" ? (
+              <>
+                <h2>{activeCaption.captions[locale].headline}</h2>
+                <p>{activeCaption.captions[locale].body}</p>
+              </>
+            ) : activeCaption?.kind === "contact" ? (
+              <div className="contact-caption">
+                <h2>{activeCaption.captions[locale].headline}</h2>
+                <div className="contact-details">
+                  <a className="contact-phone" href={CONTACT_PHONE_HREF}>
+                    {CONTACT_PHONE_LABEL}
+                  </a>
+                  <a className="contact-email" href={CONTACT_EMAIL_HREF}>
+                    {CONTACT_EMAIL}
+                  </a>
+                </div>
+                <a className="contact-action" href={CONTACT_HOMEPAGE}>
+                  {activeCaption.captions[locale].action}
+                  <span aria-hidden="true">→</span>
+                </a>
+              </div>
+            ) : null}
+          </section>
+          <nav className="language-switcher" aria-label="Language">
+            {localeOptions.map((option) => (
+              <button
+                key={option.locale}
+                type="button"
+                title={option.title}
+                aria-pressed={locale === option.locale}
+                onClick={() => setLocale(option.locale)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </nav>
+        </>
       ) : (
         <div className="video-stage" aria-hidden="true">
           <Image

@@ -1,45 +1,42 @@
-# SDQ Desktop Video-Scrolling Website
+# Multilingual Train Story Captions
 
 ## Summary
 
-Create an independent Next.js website that turns the approved 30-second train film into a fixed, full-screen desktop journey. The browser page never moves; scrolling controls native video playback between six carriage chapters.
-
-This session delivers only the film and scrolling mechanics. No visible headlines, service descriptions, navigation, contact buttons, deployment, or mobile experience.
+Add the approved captions across all six resting carriages. Scenes 1–5 use a centered headline beneath the overhead light and a supporting sentence on the ground below the carriage. Scene 6 uses its open right-hand space for a larger contact composition with phone, email, and homepage links. Uzbek Latin remains the default, all four approved languages are supported, and captions remain desktop-only.
 
 ## Implementation Changes
 
-1. Create private version history and an official Next.js App Router project using TypeScript, ESLint, standard CSS, and no animation or scrolling library.
-2. Preserve the approved master outside the public website and create matching forward and reverse H.264 browser movies plus an opening poster.
-3. Define six chapter ranges: SDQ 108-132 (centre 120), 1C 228-258 (centre 243), partnerships 324-354 (centre 339), support 408-432 (centre 420), AI 504-519 (centre 512), and contact 606-642 (centre 624).
-4. Give the first four chapters an exact four-second forward/back resting loop. Keep AI and contact at their natural 0.875x playback speed within the confirmed open-carriage ranges.
-5. Auto-play the opening arrival to SDQ, then allow exactly one adjacent carriage per deliberate gesture.
-6. Let continued gesture momentum adjust travel speed only within 1.10x-1.20x; it must never select another carriage.
-7. Reverse immediately from the visible frame when opposite input arrives during travel.
-8. Block upward travel at SDQ. From contact, play the departure, return to frame 0, replay the arrival, and absorb leftover momentum until SDQ settles.
-9. Keep the page fixed, contain the entire 16:9 frame, blend margins into the pale studio background, and show a poster until decoded video is ready.
-10. Provide keyboard, reduced-motion, hidden-tab, media-recovery, and poster-only non-desktop behavior without visible website overlays.
+1. Keep every scene's approved multilingual content in a reusable carriage-based structure that distinguishes standard captions from the final contact scene.
+2. Show the matching caption only after its carriage settles, hide captions while the train travels, and restore the correct caption whenever a scene returns.
+3. Add an upper-right language control with `UZ`, `ЎЗ`, `RU`, and `EN`; changing the language also updates the page language for accessibility.
+4. Place the headline beneath the overhead light and the supporting sentence below the carriage, without a panel, fog, or artificial glow behind either line.
+5. Match SDQ's existing typography by using Montserrat for the headline and Manrope for the supporting sentence and language control. Keep the headline navy, enlarge the supporting sentence, and use a deep teal derived from the carriage trim for readable branded contrast.
+6. Constrain both captions to an invisible centered 16:9 frame that always matches the visible film, including taller and ultrawide desktop windows.
+7. Give Scene 6 a larger right-side contact layout with clickable phone and email details and a localized homepage action, all contained within the visible film.
+8. Keep the mobile poster and train animation unchanged.
 
-## Interfaces and Failure Behaviour
+## Internal Structure
 
-- A timeline record exposes each chapter identifier, label, loop boundaries, and centre frame.
-- A pure playback controller accepts normalized wheel or keyboard intent and returns direction, speed, frame, and optional destination commands.
-- The video stage applies commands, reports the displayed source frame, reports readiness, and retries failed media.
-- Direction changes keep the current picture visible until the matching frame in the other movie is decoded.
-- Media failures retain the poster and retry on a later deliberate interaction.
-- No external API, analytics, database, or user data is introduced.
+- Use four explicit locale identifiers for Uzbek Latin, Uzbek Cyrillic, Russian, and English.
+- Keep each locale's headline and supporting sentence together in a structure that later scenes can reuse.
+- Do not add a public API, database, external service, or permanent language preference.
 
 ## Test and Acceptance Plan
 
-- Unit-test input normalization, bounded speed, four-second default loop timing, natural final-scene speed, gesture locking, reversal, boundaries, wrapping, reduced motion, and keyboard controls.
-- Verify both browser movies decode completely and match the master dimensions, duration, frame count, and forward/reverse mapping.
-- Verify a production build in Chrome, Firefox, and WebKit-sized desktop environments, including laptop, standard desktop, and ultrawide framing.
-- Assert zero page movement, one visible movie, no chapter skipping, no black frames or flashes, and no browser errors.
-- Test slow/failing media, repeated reversals, resizing, hidden-tab recovery, three complete circuits, and poster-only non-desktop loading.
-- Finish with a physical mouse and trackpad review. Do not push, publish, or deploy in this session.
+- Confirm Uzbek Latin appears by default after the first carriage settles.
+- Confirm each language button displays the approved headline and sentence and updates the page language.
+- Confirm the caption hides during travel and returns when Scene 1 comes back.
+- Confirm the caption is absent from the static mobile experience.
+- Confirm the headline and supporting sentence stay fully inside the visible 16:9 film at non-16:9 desktop window sizes.
+- Confirm Scene 2 appears only after the 1C carriage settles, supports all four approved translations, and preserves the visitor's selected language from Scene 1.
+- Confirm Scenes 3–5 show their approved headline and supporting sentence in every language and preserve the selected language between carriages.
+- Confirm Scene 6 uses the right-hand negative space, uses larger typography, stays inside the film, and exposes the correct phone, email, and homepage links.
+- Confirm keyboard access, reduced-motion behavior, existing scrolling behavior, linting, automated tests, and the production build all pass.
 
 ## Assumptions
 
-- English chapter labels appear only in invisible accessibility announcements.
-- The first four resting loops last four seconds, the final two preserve 0.875x natural playback, and a gesture ends after 180ms without wheel signals.
-- The six approved still images remain reference material; the website displays the film.
-- The accepted master remains unchanged and is the source of truth for final frame confirmation.
+- The English wording embedded in the video remains unchanged.
+- The language control stays visible on desktop while the caption itself follows Scene 1.
+- Refreshing the page returns to Uzbek Latin.
+- Scenes 1–5 share the established typography and placement.
+- Scene 6 uses +998 55 588 90 00, info@sdq-sfb.com, and https://sdq-sfb.com/.
