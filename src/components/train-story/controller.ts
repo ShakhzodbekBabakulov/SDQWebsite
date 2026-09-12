@@ -283,6 +283,32 @@ export function createPlaybackController(options: ControllerOptions = {}) {
     return { type: "hold", frame: chapters[chapterIndex].centreFrame };
   };
 
+  const settleForPresentationChange = (
+    keepPaused: boolean,
+  ): PlaybackCommand => {
+    const destinationIndex =
+      phase === "opening" ||
+      phase === "wrap-departure" ||
+      phase === "wrap-arrival"
+        ? 0
+        : (targetChapterIndex ?? chapterIndex);
+
+    chapterIndex = destinationIndex;
+    targetChapterIndex = null;
+    departureChapterIndex = null;
+    direction = 0;
+    gestureLocked = false;
+    gestureHasEnded = true;
+    strength = 0;
+    lastRateSignalAt = Number.NEGATIVE_INFINITY;
+    pausedFrom = keepPaused ? "resting" : null;
+    phase = keepPaused ? "paused" : "resting";
+
+    return keepPaused || reducedMotion
+      ? { type: "hold", frame: chapters[chapterIndex].centreFrame }
+      : restingLoop(chapterIndex);
+  };
+
   const pause = (): PlaybackCommand => {
     if (phase !== "paused") {
       pausedFrom = phase;
@@ -307,6 +333,7 @@ export function createPlaybackController(options: ControllerOptions = {}) {
     intent,
     complete,
     jump,
+    settleForPresentationChange,
     pause,
     togglePause,
     releaseGesture,

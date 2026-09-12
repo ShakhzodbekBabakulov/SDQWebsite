@@ -15,12 +15,19 @@ import {
   resolveLocale,
   type Locale,
 } from "./captions.ts";
-import { createPlaybackController } from "./controller.ts";
-import { keyboardIntent, normalizeWheel } from "./input.ts";
+import {
+  createPlaybackController,
+  type PlaybackCommand,
+} from "./controller.ts";
+import { keyboardIntent, normalizeSwipe, normalizeWheel } from "./input.ts";
 import { chapters, INPUT_IDLE_MS } from "./timeline.ts";
-import { VideoStage, type VideoStageHandle } from "./VideoStage.tsx";
+import {
+  VideoStage,
+  type FilmVariant,
+  type VideoStageHandle,
+} from "./VideoStage.tsx";
 
-const DESKTOP_FILM_QUERY = "(min-width: 768px) and (pointer: fine)";
+const PORTRAIT_FILM_QUERY = "(orientation: portrait) and (pointer: coarse)";
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 const POSTER_SOURCE = "/video/sdq-train-poster.jpg";
 const GREETING_FADE_START_FRAME = 84;
@@ -31,11 +38,10 @@ const isInteractiveTarget = (target: EventTarget | null) =>
   Boolean(target.closest("a, button, input, textarea, select, [contenteditable]"));
 
 type ExperienceProps = {
-  desktopFilm: boolean;
   reducedMotion: boolean;
 };
 
-function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
+function TrainStoryExperience({ reducedMotion }: ExperienceProps) {
   const mainRef = useRef<HTMLElement>(null);
   const stageRef = useRef<VideoStageHandle>(null);
   const languageControlRef = useRef<HTMLDivElement>(null);
@@ -43,15 +49,24 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
   const restoreLanguageFocusRef = useRef(false);
   const suppressLanguageOpenRef = useRef(false);
   const [controller] = useState(() =>
-    desktopFilm ? createPlaybackController({ reducedMotion }) : null,
+    createPlaybackController({ reducedMotion }),
   );
+  const filmVariantRef = useRef<FilmVariant | null>(null);
+  const pendingReadyCommandRef = useRef<PlaybackCommand | null>(null);
+  const touchStartRef = useRef<{
+    pointerId: number;
+    x: number;
+    y: number;
+  } | null>(null);
+  const userPausedRef = useRef(false);
   const gestureTimerRef = useRef<number | null>(null);
+  const [filmVariant, setFilmVariant] = useState<FilmVariant | null>(null);
   const [chapterLabel, setChapterLabel] = useState<string>(chapters[0].label);
   const [captionChapterIndex, setCaptionChapterIndex] = useState<number | null>(
     null,
   );
   const [locale, setLocale] = useState<Locale>(() => {
-    if (!desktopFilm || typeof navigator === "undefined") return DEFAULT_LOCALE;
+    if (typeof navigator === "undefined") return DEFAULT_LOCALE;
     const preferences =
       navigator.languages.length > 0
         ? navigator.languages
@@ -62,9 +77,7 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
   });
   const [languageOpen, setLanguageOpen] = useState(false);
   const [mediaFailed, setMediaFailed] = useState(false);
-  const [showOpeningGreeting, setShowOpeningGreeting] = useState(
-    desktopFilm && !reducedMotion,
-  );
+  const [showOpeningGreeting, setShowOpeningGreeting] = useState(!reducedMotion);
   const [userPaused, setUserPaused] = useState(false);
 
   const apply = useCallback(
@@ -73,8 +86,8 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
       if (command.type === "play" || command.type === "cut-and-play") {
         setCaptionChapterIndex(null);
       } else if (
-        (command.type === "loop" || command.type === "hold") &&
-        controller
+        command.type === "loop" ||
+        command.type === "hold"
       ) {
         const snapshot = controller.snapshot();
         setCaptionChapterIndex(
@@ -85,7 +98,7 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
         );
       }
       stageRef.current?.apply(command);
-      if (command.type === "hold" && controller) {
+      if (command.type === "hold") {
         setChapterLabel(chapters[controller.snapshot().chapterIndex].label);
       }
     },
@@ -94,12 +107,13 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
 
   const handleReady = useCallback(() => {
     setMediaFailed(false);
-    apply(controller?.start() ?? null);
+    const command = pendingReadyCommandRef.current ?? controller.start();
+    pendingReadyCommandRef.current = null;
+    apply(command);
   }, [apply, controller]);
 
   const handleComplete = useCallback(
     (frame: number) => {
-      if (!controller) return;
       const wasOpening = controller.snapshot().phase === "opening";
       apply(controller.complete(frame, performance.now()));
       if (wasOpening) setShowOpeningGreeting(false);
@@ -129,12 +143,48 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
   }, []);
 
   useEffect(() => {
-    if (!desktopFilm) return;
     document.documentElement.lang = locale;
     return () => {
       document.documentElement.lang = "en";
     };
-  }, [desktopFilm, locale]);
+  }, [locale]);
+
+  useEffect(() => {
+    userPausedRef.current = userPaused;
+  }, [userPaused]);
+
+  useEffect(() => {
+    const portraitQuery = window.matchMedia(PORTRAIT_FILM_QUERY);
+    const updatePresentation = () => {
+      const nextVariant: FilmVariant = portraitQuery.matches
+        ? "portrait"
+        : "wide";
+      const previousVariant = filmVariantRef.current;
+
+      if (previousVariant && previousVariant !== nextVariant) {
+        pendingReadyCommandRef.current =
+          controller.settleForPresentationChange(userPausedRef.current);
+        const snapshot = controller.snapshot();
+        setChapterLabel(chapters[snapshot.chapterIndex].label);
+        setCaptionChapterIndex(
+          captionsByChapter[snapshot.chapterIndex]
+            ? snapshot.chapterIndex
+            : null,
+        );
+        setShowOpeningGreeting(false);
+        setMediaFailed(false);
+      }
+
+      filmVariantRef.current = nextVariant;
+      setFilmVariant(nextVariant);
+    };
+
+    updatePresentation();
+    portraitQuery.addEventListener("change", updatePresentation);
+    return () => {
+      portraitQuery.removeEventListener("change", updatePresentation);
+    };
+  }, [controller]);
 
   useEffect(() => {
     if (languageOpen || !restoreLanguageFocusRef.current) return;
@@ -145,14 +195,15 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
   }, [languageOpen]);
 
   useEffect(() => {
-    if (!desktopFilm) return;
+    if (!filmVariant) return;
+    const main = mainRef.current;
 
     const finishGestureLater = () => {
       if (gestureTimerRef.current !== null) {
         window.clearTimeout(gestureTimerRef.current);
       }
       gestureTimerRef.current = window.setTimeout(() => {
-        controller?.releaseGesture(performance.now());
+        controller.releaseGesture(performance.now());
       }, INPUT_IDLE_MS);
     };
 
@@ -163,7 +214,7 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
 
       event.preventDefault();
       const stage = stageRef.current;
-      if (!controller || !stage) return;
+      if (!stage) return;
 
       if (mediaFailed) stage.retry();
       apply(
@@ -184,7 +235,7 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
       event.preventDefault();
 
       const stage = stageRef.current;
-      if (!controller || !stage) return;
+      if (!stage) return;
       if (mediaFailed) stage.retry();
 
       if (intent === "first" || intent === "last") {
@@ -222,6 +273,57 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
       finishGestureLater();
     };
 
+    const handlePointerDown = (event: PointerEvent) => {
+      if (
+        event.pointerType !== "touch" ||
+        !event.isPrimary ||
+        isInteractiveTarget(event.target)
+      ) {
+        return;
+      }
+      touchStartRef.current = {
+        pointerId: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+      };
+    };
+
+    const handlePointerUp = (event: PointerEvent) => {
+      const start = touchStartRef.current;
+      touchStartRef.current = null;
+      if (
+        !start ||
+        start.pointerId !== event.pointerId ||
+        isInteractiveTarget(event.target)
+      ) {
+        return;
+      }
+
+      const normalized = normalizeSwipe({
+        deltaX: event.clientX - start.x,
+        deltaY: event.clientY - start.y,
+      });
+      if (!normalized) return;
+
+      const stage = stageRef.current;
+      if (!stage) return;
+      event.preventDefault();
+      if (mediaFailed) stage.retry();
+      apply(
+        controller.intent(
+          normalized.direction,
+          normalized.pixels,
+          performance.now(),
+          stage.displayedSourceFrame(),
+        ),
+      );
+      finishGestureLater();
+    };
+
+    const handlePointerCancel = () => {
+      touchStartRef.current = null;
+    };
+
     const holdPageAtTop = () => {
       if (window.scrollX !== 0 || window.scrollY !== 0) window.scrollTo(0, 0);
     };
@@ -234,6 +336,11 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
     document.addEventListener("wheel", handleWheel, { passive: false });
     document.addEventListener("keydown", handleKeyDown);
     document.addEventListener("visibilitychange", handleVisibility);
+    main?.addEventListener("pointerdown", handlePointerDown);
+    main?.addEventListener("pointerup", handlePointerUp, {
+      passive: false,
+    });
+    main?.addEventListener("pointercancel", handlePointerCancel);
     window.addEventListener("scroll", holdPageAtTop, { passive: true });
     holdPageAtTop();
 
@@ -241,12 +348,15 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
       document.removeEventListener("wheel", handleWheel);
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("visibilitychange", handleVisibility);
+      main?.removeEventListener("pointerdown", handlePointerDown);
+      main?.removeEventListener("pointerup", handlePointerUp);
+      main?.removeEventListener("pointercancel", handlePointerCancel);
       window.removeEventListener("scroll", holdPageAtTop);
       if (gestureTimerRef.current !== null) {
         window.clearTimeout(gestureTimerRef.current);
       }
     };
-  }, [apply, controller, desktopFilm, mediaFailed, userPaused]);
+  }, [apply, controller, filmVariant, mediaFailed, userPaused]);
 
   const activeCaption =
     captionChapterIndex === null
@@ -270,17 +380,20 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
     <main ref={mainRef} className="train-story">
       <h1 className="sr-only">SDQ Management Advisory Group</h1>
       <p className="sr-only" id="train-story-instructions">
-        Use the mouse wheel, trackpad, arrow keys, page keys, or space bar to
-        move through the six train carriages. Press P to pause or resume.
+        Swipe vertically, use the mouse wheel, trackpad, arrow keys, page keys,
+        or space bar to move through the six train carriages. Press P to pause
+        or resume.
       </p>
       <p className="sr-only" aria-live="polite" aria-atomic="true">
         {chapterLabel}
       </p>
 
-      {desktopFilm ? (
+      {filmVariant ? (
         <>
           <VideoStage
+            key={filmVariant}
             ref={stageRef}
+            variant={filmVariant}
             onReady={handleReady}
             onComplete={handleComplete}
             onFrame={handleFrame}
@@ -305,18 +418,20 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
             ) : activeCaption?.kind === "contact" ? (
               <div className="contact-caption">
                 <h2>{activeCaption.captions[locale].headline}</h2>
-                <div className="contact-details">
-                  <a className="contact-phone" href={CONTACT_PHONE_HREF}>
-                    {CONTACT_PHONE_LABEL}
-                  </a>
-                  <a className="contact-email" href={CONTACT_EMAIL_HREF}>
-                    {CONTACT_EMAIL}
+                <div className="contact-caption__actions">
+                  <div className="contact-details">
+                    <a className="contact-phone" href={CONTACT_PHONE_HREF}>
+                      {CONTACT_PHONE_LABEL}
+                    </a>
+                    <a className="contact-email" href={CONTACT_EMAIL_HREF}>
+                      {CONTACT_EMAIL}
+                    </a>
+                  </div>
+                  <a className="contact-action" href={CONTACT_HOMEPAGE}>
+                    {activeCaption.captions[locale].action}
+                    <span aria-hidden="true">→</span>
                   </a>
                 </div>
-                <a className="contact-action" href={CONTACT_HOMEPAGE}>
-                  {activeCaption.captions[locale].action}
-                  <span aria-hidden="true">→</span>
-                </a>
               </div>
             ) : null}
           </section>
@@ -395,31 +510,22 @@ function TrainStoryExperience({ desktopFilm, reducedMotion }: ExperienceProps) {
 }
 
 export function TrainStory() {
-  const [desktopFilm, setDesktopFilm] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
 
   useEffect(() => {
-    const desktopQuery = window.matchMedia(DESKTOP_FILM_QUERY);
     const motionQuery = window.matchMedia(REDUCED_MOTION_QUERY);
     const update = () => {
-      setDesktopFilm(desktopQuery.matches);
       setReducedMotion(motionQuery.matches);
     };
 
     update();
-    desktopQuery.addEventListener("change", update);
     motionQuery.addEventListener("change", update);
     return () => {
-      desktopQuery.removeEventListener("change", update);
       motionQuery.removeEventListener("change", update);
     };
   }, []);
 
   return (
-    <TrainStoryExperience
-      key={`${desktopFilm}:${reducedMotion}`}
-      desktopFilm={desktopFilm}
-      reducedMotion={reducedMotion}
-    />
+    <TrainStoryExperience key={`${reducedMotion}`} reducedMotion={reducedMotion} />
   );
 }

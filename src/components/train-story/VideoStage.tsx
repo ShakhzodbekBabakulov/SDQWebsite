@@ -20,8 +20,14 @@ import {
 const FORWARD_SOURCE = "/video/sdq-train-desktop.mp4";
 const REVERSE_SOURCE = "/video/sdq-train-desktop-reverse.mp4";
 const POSTER_SOURCE = "/video/sdq-train-poster.jpg";
+const MOBILE_FORWARD_SOURCE = "/video/sdq-train-mobile.mp4";
+const MOBILE_REVERSE_SOURCE = "/video/sdq-train-mobile-reverse.mp4";
+const MOBILE_POSTER_SOURCE = "/video/sdq-train-mobile-poster.jpg";
+
+export type FilmVariant = "portrait" | "wide";
 
 type VideoStageProps = {
+  variant: FilmVariant;
   onComplete: (displayedFrame: number) => void;
   onError: () => void;
   onFrame: (displayedFrame: number) => void;
@@ -291,7 +297,10 @@ function nextPresentedFrame(video: HTMLVideoElement, callback: FrameCallback) {
 }
 
 export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
-  function VideoStage({ onComplete, onError, onFrame, onReady }, ref) {
+  function VideoStage(
+    { variant, onComplete, onError, onFrame, onReady },
+    ref,
+  ) {
     const stageRef = useRef<HTMLDivElement>(null);
     const ambientPosterRef = useRef<HTMLImageElement>(null);
     const ambientCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -781,48 +790,58 @@ export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
       }
     };
 
+    const portrait = variant === "portrait";
+    const forwardSource = portrait ? MOBILE_FORWARD_SOURCE : FORWARD_SOURCE;
+    const reverseSource = portrait ? MOBILE_REVERSE_SOURCE : REVERSE_SOURCE;
+    const posterSource = portrait ? MOBILE_POSTER_SOURCE : POSTER_SOURCE;
+
     return (
       <div
         ref={stageRef}
         className="video-stage"
         aria-hidden="true"
+        data-variant={variant}
         data-ready="false"
         data-frame="0"
         data-direction="0"
       >
-        <Image
-          ref={ambientPosterRef}
-          className="video-stage__ambient video-stage__ambient-poster"
-          src={POSTER_SOURCE}
-          alt=""
-          width={1920}
-          height={1080}
-          sizes="100vw"
-          priority
-          unoptimized
-        />
-        <canvas
-          ref={ambientCanvasRef}
-          className="video-stage__ambient video-stage__ambient-canvas"
-          width={960}
-          height={540}
-          data-painted="false"
-          data-frame="-1"
-          data-direction="0"
-        />
-        <canvas
-          ref={edgeCanvasRef}
-          className="video-stage__edge-canvas"
-          width={960}
-          height={540}
-          data-painted="false"
-          data-frame="-1"
-          data-direction="0"
-          data-axis="none"
-        />
+        {portrait ? null : (
+          <>
+            <Image
+              ref={ambientPosterRef}
+              className="video-stage__ambient video-stage__ambient-poster"
+              src={POSTER_SOURCE}
+              alt=""
+              width={1920}
+              height={1080}
+              sizes="100vw"
+              priority
+              unoptimized
+            />
+            <canvas
+              ref={ambientCanvasRef}
+              className="video-stage__ambient video-stage__ambient-canvas"
+              width={960}
+              height={540}
+              data-painted="false"
+              data-frame="-1"
+              data-direction="0"
+            />
+            <canvas
+              ref={edgeCanvasRef}
+              className="video-stage__edge-canvas"
+              width={960}
+              height={540}
+              data-painted="false"
+              data-frame="-1"
+              data-direction="0"
+              data-axis="none"
+            />
+          </>
+        )}
         <Image
           className={`film-layer film-poster${hasDecodedFrame ? " is-hidden" : ""}`}
-          src={POSTER_SOURCE}
+          src={posterSource}
           alt=""
           fill
           sizes="100vw"
@@ -832,9 +851,10 @@ export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
         <video
           ref={forwardVideoRef}
           className={`film-layer${activeDirection === 1 && hasDecodedFrame ? " is-active" : ""}`}
-          src={FORWARD_SOURCE}
-          poster={POSTER_SOURCE}
+          src={forwardSource}
+          poster={posterSource}
           preload="auto"
+          autoPlay
           muted
           playsInline
           disablePictureInPicture
@@ -846,8 +866,8 @@ export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
         <video
           ref={reverseVideoRef}
           className={`film-layer${activeDirection === -1 && hasDecodedFrame ? " is-active" : ""}`}
-          src={REVERSE_SOURCE}
-          poster={POSTER_SOURCE}
+          src={reverseSource}
+          poster={posterSource}
           preload="auto"
           muted
           playsInline

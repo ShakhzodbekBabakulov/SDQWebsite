@@ -12,11 +12,9 @@ import {
 import {
   createPlaybackController,
 } from "../src/components/train-story/controller.ts";
-import {
-  keyboardIntent,
-  normalizeWheel,
-  travelPlaybackRate,
-} from "../src/components/train-story/input.ts";
+import * as trainInput from "../src/components/train-story/input.ts";
+
+const { keyboardIntent, normalizeWheel, travelPlaybackRate } = trainInput;
 
 test("the approved six carriage ranges are the source of truth", () => {
   assert.equal(FPS, 24);
@@ -90,6 +88,26 @@ test("wheel input is normalized without stealing zoom or horizontal gestures", (
   );
 });
 
+test("vertical phone swipes map to the same carriage directions as desktop scroll", () => {
+  const normalizeSwipe = trainInput.normalizeSwipe ?? (() => null);
+
+  assert.deepEqual(normalizeSwipe({ deltaX: 8, deltaY: -96 }), {
+    direction: 1,
+    pixels: 96,
+  });
+  assert.deepEqual(normalizeSwipe({ deltaX: -6, deltaY: 72 }), {
+    direction: -1,
+    pixels: 72,
+  });
+});
+
+test("short or mostly sideways phone gestures do not move the train", () => {
+  const normalizeSwipe = trainInput.normalizeSwipe ?? (() => null);
+
+  assert.equal(normalizeSwipe({ deltaX: 2, deltaY: -47 }), null);
+  assert.equal(normalizeSwipe({ deltaX: 80, deltaY: -60 }), null);
+});
+
 test("gesture strength can change travel speed but never leaves the 1.10x-1.20x band", () => {
   assert.ok(travelPlaybackRate(1, 100, 0) >= 1.1);
   assert.equal(travelPlaybackRate(1_000, 1, 0), 1.2);
@@ -150,6 +168,34 @@ test("opposite input reverses immediately from the exact displayed frame", () =>
     rate: 1.2,
   });
   assert.equal(controller.snapshot().targetChapterIndex, 0);
+});
+
+test("changing film shape settles on the intended carriage", () => {
+  const controller = createPlaybackController({ startAtRest: true });
+  controller.intent(1, 80, 1_000, 120);
+
+  const command = controller.settleForPresentationChange?.(false);
+
+  assert.deepEqual(command, {
+    type: "loop",
+    startFrame: 228,
+    endFrame: 258,
+    rate: 0.625,
+    durationMs: 4_000,
+  });
+  assert.equal(controller.snapshot().chapterIndex, 1);
+  assert.equal(controller.snapshot().phase, "resting");
+});
+
+test("changing film shape keeps a paused journey paused on a visible frame", () => {
+  const controller = createPlaybackController({ startAtRest: true });
+  controller.intent(1, 80, 1_000, 120);
+
+  const command = controller.settleForPresentationChange?.(true);
+
+  assert.deepEqual(command, { type: "hold", frame: 243 });
+  assert.equal(controller.snapshot().chapterIndex, 1);
+  assert.equal(controller.snapshot().phase, "paused");
 });
 
 test("the first boundary is blocked and the last boundary performs the full wrap", () => {

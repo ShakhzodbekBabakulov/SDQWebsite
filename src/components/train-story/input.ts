@@ -16,6 +16,11 @@ type WheelLike = {
   altKey?: boolean;
 };
 
+type SwipeLike = {
+  deltaX: number;
+  deltaY: number;
+};
+
 export type Direction = -1 | 1;
 export type KeyboardIntent =
   | Direction
@@ -49,6 +54,22 @@ export function normalizeWheel(
   return {
     direction: event.deltaY > 0 ? 1 : -1,
     pixels: Math.abs(event.deltaY * multiplier),
+  };
+}
+
+export function normalizeSwipe(
+  gesture: SwipeLike,
+): { direction: Direction; pixels: number } | null {
+  const horizontalDistance = Math.abs(gesture.deltaX);
+  const verticalDistance = Math.abs(gesture.deltaY);
+
+  if (verticalDistance < 48 || verticalDistance < horizontalDistance * 1.25) {
+    return null;
+  }
+
+  return {
+    direction: gesture.deltaY < 0 ? 1 : -1,
+    pixels: verticalDistance,
   };
 }
 
@@ -88,4 +109,3 @@ export function keyboardIntent(
   if (key === "Escape") return "pause";
   return null;
 }
-
