@@ -19,6 +19,7 @@ export type PlaybackCommand =
   | { type: "rate"; rate: number }
   | {
       type: "loop";
+      fromFrame?: number;
       startFrame: number;
       endFrame: number;
       rate: number;
@@ -49,10 +50,11 @@ type Snapshot = {
   reducedMotion: boolean;
 };
 
-const restingLoop = (chapterIndex: number): PlaybackCommand => {
+const restingLoop = (chapterIndex: number, fromFrame?: number): PlaybackCommand => {
   const chapter = chapters[chapterIndex];
   return {
     type: "loop",
+    ...(fromFrame === undefined ? {} : { fromFrame }),
     startFrame: chapter.startFrame,
     endFrame: chapter.endFrame,
     rate: loopPlaybackRate(chapter),
@@ -73,6 +75,7 @@ export function createPlaybackController(options: ControllerOptions = {}) {
   let strength = 0;
   let gestureHasEnded = true;
   let pausedFrom: Phase | null = null;
+  let chapterRequestTravel = false;
 
   const snapshot = (): Snapshot => ({
     chapterIndex,
@@ -113,6 +116,7 @@ export function createPlaybackController(options: ControllerOptions = {}) {
     frame: number,
     rate: number,
   ): PlaybackCommand => {
+    chapterRequestTravel = false;
     departureChapterIndex = chapterIndex;
     targetChapterIndex = nextChapterIndex;
     direction = nextDirection;
@@ -212,6 +216,51 @@ export function createPlaybackController(options: ControllerOptions = {}) {
     );
   };
 
+  // Scroll position is a destination, not a new gesture. Retrying a pending
+  // destination must never extend the lock used for the final departure swipe.
+  const requestChapter = (
+    index: number,
+    now: number,
+    displayedFrame: number,
+  ): PlaybackCommand | null => {
+    if (
+      !Number.isInteger(index) || index < 0 || index >= chapters.length ||
+      !Number.isFinite(displayedFrame) ||
+      phase === "opening" || phase === "wrap-departure" ||
+      phase === "wrap-arrival" || phase === "paused"
+    ) return null;
+
+    releaseGesture(now);
+    if (phase === "traveling" && targetChapterIndex === index) return null;
+    if (phase === "resting" && chapterIndex === index) return null;
+
+    const destination = chapters[index];
+    if (reducedMotion || (
+      displayedFrame >= destination.startFrame &&
+      displayedFrame <= destination.endFrame
+    )) {
+      chapterIndex = index;
+      targetChapterIndex = null;
+      departureChapterIndex = null;
+      direction = 0;
+      phase = "resting";
+      chapterRequestTravel = false;
+      releaseGesture(now);
+      return reducedMotion
+        ? { type: "hold", frame: destination.centreFrame }
+        : restingLoop(index, displayedFrame);
+    }
+
+    const command = beginTravel(
+      index,
+      displayedFrame < destination.startFrame ? 1 : -1,
+      displayedFrame,
+      MIN_TRAVEL_RATE,
+    );
+    chapterRequestTravel = true;
+    return command;
+  };
+
   const complete = (
     displayedFrame: number,
     now: number,
@@ -230,6 +279,12 @@ export function createPlaybackController(options: ControllerOptions = {}) {
     }
 
     if (phase === "traveling") {
+      const destination = chapters[targetChapterIndex ?? chapterIndex];
+      if (chapterRequestTravel && (
+        !Number.isFinite(displayedFrame) ||
+        displayedFrame < destination.startFrame ||
+        displayedFrame > destination.endFrame
+      )) return null;
       chapterIndex = targetChapterIndex ?? chapterIndex;
       targetChapterIndex = null;
       departureChapterIndex = null;
@@ -238,7 +293,11 @@ export function createPlaybackController(options: ControllerOptions = {}) {
       if (gestureHasEnded && now - lastSignalAt >= INPUT_IDLE_MS) {
         gestureLocked = false;
       }
-      return restingLoop(chapterIndex);
+      const fromFrame = chapterRequestTravel
+        ? Math.min(chapters[chapterIndex].endFrame, Math.max(chapters[chapterIndex].startFrame, displayedFrame))
+        : undefined;
+      chapterRequestTravel = false;
+      return restingLoop(chapterIndex, fromFrame);
     }
 
     if (phase === "wrap-departure") {
@@ -331,6 +390,7 @@ export function createPlaybackController(options: ControllerOptions = {}) {
   return {
     start,
     intent,
+    requestChapter,
     complete,
     jump,
     settleForPresentationChange,

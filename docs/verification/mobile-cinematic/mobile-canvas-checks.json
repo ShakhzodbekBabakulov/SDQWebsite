@@ -1,0 +1,32 @@
+[
+  {
+    "engine": "chromium",
+    "canvasFailureFallback": true,
+    "confirmedFrames": [
+      120,
+      420,
+      624
+    ],
+    "activeLayers": 1
+  },
+  {
+    "engine": "firefox",
+    "canvasFailureFallback": true,
+    "confirmedFrames": [
+      120,
+      420,
+      624
+    ],
+    "activeLayers": 1
+  },
+  {
+    "engine": "webkit",
+    "canvasFailureFallback": true,
+    "confirmedFrames": [
+      120,
+      420,
+      624
+    ],
+    "activeLayers": 1
+  }
+]

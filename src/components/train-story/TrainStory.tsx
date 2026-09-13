@@ -17,21 +17,18 @@ import {
 } from "./captions.ts";
 import {
   createPlaybackController,
-  type PlaybackCommand,
 } from "./controller.ts";
-import { keyboardIntent, normalizeSwipe, normalizeWheel } from "./input.ts";
-import { chapters, INPUT_IDLE_MS } from "./timeline.ts";
+import { keyboardIntent, normalizeSwipe, normalizeWheel, sceneIndexForScroll, mobileMediaForViewport } from "./input.ts";
+import { chapters, INPUT_IDLE_MS, MEDIA, GREETING_FADE_START_FRAME, GREETING_FADE_END_FRAME, captionChapterForFrame } from "./timeline.ts";
 import {
   VideoStage,
   type FilmVariant,
   type VideoStageHandle,
 } from "./VideoStage.tsx";
 
-const PORTRAIT_FILM_QUERY = "(orientation: portrait) and (pointer: coarse)";
+const MOBILE_QUERY = "(max-width: 767px), (pointer: coarse)";
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
-const POSTER_SOURCE = "/video/sdq-train-poster.jpg";
-const GREETING_FADE_START_FRAME = 84;
-const GREETING_FADE_END_FRAME = 95;
+const POSTER_SOURCE = MEDIA.desktop.poster;
 
 const isInteractiveTarget = (target: EventTarget | null) =>
   target instanceof HTMLElement &&
@@ -52,12 +49,12 @@ function TrainStoryExperience({ reducedMotion }: ExperienceProps) {
     createPlaybackController({ reducedMotion }),
   );
   const filmVariantRef = useRef<FilmVariant | null>(null);
-  const pendingReadyCommandRef = useRef<PlaybackCommand | null>(null);
-  const touchStartRef = useRef<{
-    pointerId: number;
-    x: number;
-    y: number;
-  } | null>(null);
+  const [mobile, setMobile] = useState(false);
+  const [portrait, setPortrait] = useState(false);
+  const mobileRef = useRef(false);
+  const requestedChapterRef = useRef(0);
+  const wrapGuardRef = useRef(false);
+  const [playbackBlocked, setPlaybackBlocked] = useState(false);
   const userPausedRef = useRef(false);
   const gestureTimerRef = useRef<number | null>(null);
   const [filmVariant, setFilmVariant] = useState<FilmVariant | null>(null);
@@ -83,11 +80,15 @@ function TrainStoryExperience({ reducedMotion }: ExperienceProps) {
   const apply = useCallback(
     (command: Parameters<VideoStageHandle["apply"]>[0] | null) => {
       if (!command) return;
-      if (command.type === "play" || command.type === "cut-and-play") {
+      if (mobileRef.current && command.type === "cut-and-play") {
+        requestedChapterRef.current = 0;
+        window.scrollTo({ top: 0, behavior: "instant" });
+      }
+      if (!mobileRef.current && (command.type === "play" || command.type === "cut-and-play")) {
         setCaptionChapterIndex(null);
       } else if (
-        command.type === "loop" ||
-        command.type === "hold"
+        !mobileRef.current && (command.type === "loop" ||
+        command.type === "hold")
       ) {
         const snapshot = controller.snapshot();
         setCaptionChapterIndex(
@@ -98,6 +99,11 @@ function TrainStoryExperience({ reducedMotion }: ExperienceProps) {
         );
       }
       stageRef.current?.apply(command);
+      if (mainRef.current) {
+        const state = controller.snapshot();
+        mainRef.current.dataset.mode = state.phase;
+        mainRef.current.dataset.scene = chapters[state.chapterIndex].id;
+      }
       if (command.type === "hold") {
         setChapterLabel(chapters[controller.snapshot().chapterIndex].label);
       }
@@ -107,9 +113,7 @@ function TrainStoryExperience({ reducedMotion }: ExperienceProps) {
 
   const handleReady = useCallback(() => {
     setMediaFailed(false);
-    const command = pendingReadyCommandRef.current ?? controller.start();
-    pendingReadyCommandRef.current = null;
-    apply(command);
+    apply(controller.start());
   }, [apply, controller]);
 
   const handleComplete = useCallback(
@@ -126,6 +130,11 @@ function TrainStoryExperience({ reducedMotion }: ExperienceProps) {
   );
 
   const handleFrame = useCallback((frame: number) => {
+    if (mobileRef.current) {
+      const index = captionChapterForFrame(frame);
+      setCaptionChapterIndex(index);
+      if (index !== null) setChapterLabel(chapters[index].label);
+    }
     const linearProgress = Math.max(
       0,
       Math.min(
@@ -154,35 +163,30 @@ function TrainStoryExperience({ reducedMotion }: ExperienceProps) {
   }, [userPaused]);
 
   useEffect(() => {
-    const portraitQuery = window.matchMedia(PORTRAIT_FILM_QUERY);
+    const mobileQuery = window.matchMedia(MOBILE_QUERY);
+    const coarseQuery = window.matchMedia("(pointer: coarse)");
+    const orientation = window.matchMedia("(orientation: portrait)");
     const updatePresentation = () => {
-      const nextVariant: FilmVariant = portraitQuery.matches
-        ? "portrait"
-        : "wide";
-      const previousVariant = filmVariantRef.current;
-
-      if (previousVariant && previousVariant !== nextVariant) {
-        pendingReadyCommandRef.current =
-          controller.settleForPresentationChange(userPausedRef.current);
-        const snapshot = controller.snapshot();
-        setChapterLabel(chapters[snapshot.chapterIndex].label);
-        setCaptionChapterIndex(
-          captionsByChapter[snapshot.chapterIndex]
-            ? snapshot.chapterIndex
-            : null,
-        );
-        setShowOpeningGreeting(false);
-        setMediaFailed(false);
-      }
-
+      const nextMobile = mobileQuery.matches;
+      const nextVariant: FilmVariant = filmVariantRef.current ?? (mobileMediaForViewport(
+        window.innerWidth, coarseQuery.matches, window.screen.width, window.screen.height,
+      ) ? "mobile" : "wide");
+      mobileRef.current = nextMobile;
+      setMobile(nextMobile);
+      setPortrait(nextMobile && window.innerWidth < 768 && orientation.matches);
       filmVariantRef.current = nextVariant;
       setFilmVariant(nextVariant);
     };
-
     updatePresentation();
-    portraitQuery.addEventListener("change", updatePresentation);
+    mobileQuery.addEventListener("change", updatePresentation);
+    coarseQuery.addEventListener("change", updatePresentation);
+    orientation.addEventListener("change", updatePresentation);
+    window.addEventListener("resize", updatePresentation);
     return () => {
-      portraitQuery.removeEventListener("change", updatePresentation);
+      mobileQuery.removeEventListener("change", updatePresentation);
+      coarseQuery.removeEventListener("change", updatePresentation);
+      orientation.removeEventListener("change", updatePresentation);
+      window.removeEventListener("resize", updatePresentation);
     };
   }, [controller]);
 
@@ -195,8 +199,7 @@ function TrainStoryExperience({ reducedMotion }: ExperienceProps) {
   }, [languageOpen]);
 
   useEffect(() => {
-    if (!filmVariant) return;
-    const main = mainRef.current;
+    if (!filmVariant || mobile) return;
 
     const finishGestureLater = () => {
       if (gestureTimerRef.current !== null) {
@@ -249,7 +252,10 @@ function TrainStoryExperience({ reducedMotion }: ExperienceProps) {
 
       if (intent === "toggle-pause") {
         setUserPaused((paused) => {
-          if (paused) stage.resume();
+          if (paused) {
+            if (controller.snapshot().phase === "paused") apply(controller.settleForPresentationChange(false));
+            stage.resume();
+          }
           else stage.pause();
           return !paused;
         });
@@ -273,57 +279,6 @@ function TrainStoryExperience({ reducedMotion }: ExperienceProps) {
       finishGestureLater();
     };
 
-    const handlePointerDown = (event: PointerEvent) => {
-      if (
-        event.pointerType !== "touch" ||
-        !event.isPrimary ||
-        isInteractiveTarget(event.target)
-      ) {
-        return;
-      }
-      touchStartRef.current = {
-        pointerId: event.pointerId,
-        x: event.clientX,
-        y: event.clientY,
-      };
-    };
-
-    const handlePointerUp = (event: PointerEvent) => {
-      const start = touchStartRef.current;
-      touchStartRef.current = null;
-      if (
-        !start ||
-        start.pointerId !== event.pointerId ||
-        isInteractiveTarget(event.target)
-      ) {
-        return;
-      }
-
-      const normalized = normalizeSwipe({
-        deltaX: event.clientX - start.x,
-        deltaY: event.clientY - start.y,
-      });
-      if (!normalized) return;
-
-      const stage = stageRef.current;
-      if (!stage) return;
-      event.preventDefault();
-      if (mediaFailed) stage.retry();
-      apply(
-        controller.intent(
-          normalized.direction,
-          normalized.pixels,
-          performance.now(),
-          stage.displayedSourceFrame(),
-        ),
-      );
-      finishGestureLater();
-    };
-
-    const handlePointerCancel = () => {
-      touchStartRef.current = null;
-    };
-
     const holdPageAtTop = () => {
       if (window.scrollX !== 0 || window.scrollY !== 0) window.scrollTo(0, 0);
     };
@@ -336,11 +291,6 @@ function TrainStoryExperience({ reducedMotion }: ExperienceProps) {
     document.addEventListener("wheel", handleWheel, { passive: false });
     document.addEventListener("keydown", handleKeyDown);
     document.addEventListener("visibilitychange", handleVisibility);
-    main?.addEventListener("pointerdown", handlePointerDown);
-    main?.addEventListener("pointerup", handlePointerUp, {
-      passive: false,
-    });
-    main?.addEventListener("pointercancel", handlePointerCancel);
     window.addEventListener("scroll", holdPageAtTop, { passive: true });
     holdPageAtTop();
 
@@ -348,15 +298,162 @@ function TrainStoryExperience({ reducedMotion }: ExperienceProps) {
       document.removeEventListener("wheel", handleWheel);
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("visibilitychange", handleVisibility);
-      main?.removeEventListener("pointerdown", handlePointerDown);
-      main?.removeEventListener("pointerup", handlePointerUp);
-      main?.removeEventListener("pointercancel", handlePointerCancel);
       window.removeEventListener("scroll", holdPageAtTop);
       if (gestureTimerRef.current !== null) {
         window.clearTimeout(gestureTimerRef.current);
       }
     };
-  }, [apply, controller, filmVariant, mediaFailed, userPaused]);
+  }, [apply, controller, filmVariant, mediaFailed, userPaused, mobile]);
+
+  useEffect(() => {
+    if (!mobile || !filmVariant) return;
+    const root = document.documentElement;
+    const priorRefresh = root.dataset.trainRefresh;
+    const priorWrap = root.dataset.trainWrap;
+    const setWrapGuard = (active: boolean) => {
+      wrapGuardRef.current = active;
+      if (active) root.dataset.trainWrap = "true";
+      else delete root.dataset.trainWrap;
+    };
+    const stepHeight = () => mainRef.current?.querySelector<HTMLElement>(".mobile-story-stop")?.getBoundingClientRect().height || window.innerHeight;
+    let height = stepHeight();
+    const currentChapter = controller.snapshot();
+    requestedChapterRef.current = currentChapter.phase === "opening"
+      ? sceneIndexForScroll(window.scrollY, height)
+      : currentChapter.phase === "wrap-departure" ? currentChapter.chapterIndex
+      : currentChapter.targetChapterIndex ?? currentChapter.chapterIndex;
+    if (currentChapter.phase !== "opening") {
+      window.scrollTo({ top: requestedChapterRef.current * height, behavior: "instant" });
+    }
+    let touch: { x: number; y: number; wrap: boolean; refresh: boolean } | null = null;
+    let scrolling = false;
+    let lastNativeSignalAt = performance.now();
+    let scrollTimer = 0;
+    let raf = 0;
+    const atOpening = () => stageRef.current?.isReady() && controller.snapshot().phase === "resting"
+      && controller.snapshot().chapterIndex === 0 && requestedChapterRef.current === 0 && window.scrollY <= 0;
+    const refreshPermission = () => {
+      root.dataset.trainRefresh = !wrapGuardRef.current && (touch?.refresh || (!touch && !scrolling && atOpening())) ? "ready" : "blocked";
+    };
+    const scrollEnd = () => { scrolling = false; refreshPermission(); };
+    const onScroll = () => {
+      lastNativeSignalAt = performance.now();
+      if (wrapGuardRef.current) {
+        if (window.scrollY !== 0 && controller.snapshot().phase !== "wrap-departure") window.scrollTo({ top: 0, behavior: "instant" });
+        return;
+      }
+      scrolling = true;
+      window.clearTimeout(scrollTimer);
+      scrollTimer = window.setTimeout(scrollEnd, INPUT_IDLE_MS);
+      if (touch && window.scrollY > 0) touch.refresh = false;
+      requestedChapterRef.current = sceneIndexForScroll(window.scrollY, height);
+      refreshPermission();
+    };
+    const touchStart = (event: TouchEvent) => {
+      lastNativeSignalAt = performance.now();
+      if (event.touches.length !== 1 || isInteractiveTarget(event.target)) { touch = null; return; }
+      const state = controller.snapshot();
+      const fresh = !scrolling;
+      if (state.phase === "resting") setWrapGuard(false);
+      // A new touch stops prior momentum, even when Safari omitted scrollend.
+      scrolling = false;
+      touch = { x: event.touches[0].clientX, y: event.touches[0].clientY,
+        refresh: Boolean(atOpening()),
+        wrap: fresh && state.phase === "resting" && state.chapterIndex === chapters.length - 1
+          && requestedChapterRef.current === chapters.length - 1
+          && window.scrollY >= (chapters.length - 1) * height - 2 };
+      refreshPermission();
+    };
+    const touchEnd = (event: TouchEvent) => {
+      lastNativeSignalAt = performance.now();
+      const start = touch;
+      touch = null;
+      if (event.touches.length || !start || !event.changedTouches.length || isInteractiveTarget(event.target)) { refreshPermission(); return; }
+      const direction = normalizeSwipe({ deltaX: event.changedTouches[0].clientX - start.x, deltaY: event.changedTouches[0].clientY - start.y });
+      if (start.wrap && direction?.direction === 1 && controller.snapshot().phase === "resting") {
+        controller.releaseGesture(performance.now());
+        // Forget Safari’s previous snap target before the opening cut.
+        setWrapGuard(true);
+        scrolling = false;
+        window.clearTimeout(scrollTimer);
+        const command = controller.intent(1, direction.pixels, performance.now(), stageRef.current?.displayedSourceFrame() ?? 0);
+        apply(command);
+        if (reducedMotion && command?.type === "hold") {
+          requestedChapterRef.current = 0;
+          window.scrollTo({ top: 0, behavior: "instant" });
+        }
+      }
+      refreshPermission();
+    };
+    const touchCancel = () => { touch = null; refreshPermission(); };
+    const resize = () => {
+      const nextHeight = stepHeight();
+      if (Math.abs(nextHeight - height) < 1) return;
+      height = nextHeight;
+      window.scrollTo({ top: requestedChapterRef.current * height, behavior: "instant" });
+    };
+    const visibility = () => {
+      touch = null; scrolling = false;
+      if (document.hidden) stageRef.current?.pause();
+      else if (!userPausedRef.current) stageRef.current?.resume();
+      refreshPermission();
+    };
+    const keyboard = (event: KeyboardEvent) => {
+      if (isInteractiveTarget(event.target) || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.key.toLowerCase() === "p" || event.key === "Escape") {
+        event.preventDefault();
+        const paused = event.key === "Escape" || !userPausedRef.current;
+        userPausedRef.current = paused; setUserPaused(paused);
+        if (paused) stageRef.current?.pause(); else {
+          if (controller.snapshot().phase === "paused") apply(controller.settleForPresentationChange(false));
+          stageRef.current?.resume();
+        }
+      }
+      if (keyboardIntent(event.key, event.shiftKey) !== null && controller.snapshot().phase === "resting") setWrapGuard(false);
+      // Page, arrow, Home/End and space keys scroll the native document.
+    };
+    const wheel = () => {
+      if (controller.snapshot().phase === "resting") setWrapGuard(false);
+    };
+    const tick = () => {
+      const stage = stageRef.current;
+      const now = performance.now();
+      controller.releaseGesture(now);
+      if (wrapGuardRef.current && controller.snapshot().phase === "resting" && !touch
+        && Math.abs(window.scrollY) <= 1 && now - lastNativeSignalAt > 250) setWrapGuard(false);
+      if (!document.hidden && stage?.isReady() && !userPausedRef.current && !wrapGuardRef.current) {
+        apply(controller.requestChapter(requestedChapterRef.current, now, stage.displayedSourceFrame()));
+      }
+      if (mainRef.current) {
+        const state = controller.snapshot();
+        mainRef.current.dataset.mode = state.phase;
+        mainRef.current.dataset.scene = chapters[state.chapterIndex].id;
+        mainRef.current.dataset.destination = String(requestedChapterRef.current);
+      }
+      refreshPermission();
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("scrollend", scrollEnd, { passive: true });
+    window.addEventListener("touchstart", touchStart, { passive: true });
+    window.addEventListener("touchend", touchEnd, { passive: true });
+    window.addEventListener("touchcancel", touchCancel, { passive: true });
+    window.addEventListener("resize", resize);
+    window.addEventListener("keydown", keyboard);
+    window.addEventListener("wheel", wheel, { passive: true });
+    document.addEventListener("visibilitychange", visibility);
+    return () => {
+      cancelAnimationFrame(raf); window.clearTimeout(scrollTimer);
+      window.removeEventListener("scroll", onScroll); window.removeEventListener("scrollend", scrollEnd);
+      window.removeEventListener("touchstart", touchStart); window.removeEventListener("touchend", touchEnd);
+      window.removeEventListener("touchcancel", touchCancel); window.removeEventListener("resize", resize);
+      window.removeEventListener("keydown", keyboard); window.removeEventListener("wheel", wheel); document.removeEventListener("visibilitychange", visibility);
+      setWrapGuard(false);
+      if (priorWrap === undefined) delete root.dataset.trainWrap; else root.dataset.trainWrap = priorWrap;
+      if (priorRefresh === undefined) delete root.dataset.trainRefresh; else root.dataset.trainRefresh = priorRefresh;
+    };
+  }, [mobile, filmVariant, controller, apply, reducedMotion]);
 
   const activeCaption =
     captionChapterIndex === null
@@ -377,7 +474,7 @@ function TrainStoryExperience({ reducedMotion }: ExperienceProps) {
   };
 
   return (
-    <main ref={mainRef} className="train-story">
+    <main ref={mainRef} className="train-story" data-mobile={mobile} data-portrait={portrait}>
       <h1 className="sr-only">SDQ Management Advisory Group</h1>
       <p className="sr-only" id="train-story-instructions">
         Swipe vertically, use the mouse wheel, trackpad, arrow keys, page keys,
@@ -388,12 +485,16 @@ function TrainStoryExperience({ reducedMotion }: ExperienceProps) {
         {chapterLabel}
       </p>
 
+      <div className="train-story__viewport">
       {filmVariant ? (
         <>
           <VideoStage
             key={filmVariant}
             ref={stageRef}
             variant={filmVariant}
+            mobile={mobile}
+            portrait={portrait}
+            onPlaybackBlocked={setPlaybackBlocked}
             onReady={handleReady}
             onComplete={handleComplete}
             onFrame={handleFrame}
@@ -505,6 +606,28 @@ function TrainStoryExperience({ reducedMotion }: ExperienceProps) {
           />
         </div>
       )}
+      {mobile && (playbackBlocked || mediaFailed) ? (
+        <button className="playback-retry" onClick={() => { setMediaFailed(false); stageRef.current?.retry(); }}>
+          {mediaFailed ? "Retry film" : "Play film"}
+        </button>
+      ) : null}
+      </div>
+      <div className="mobile-story-track" aria-hidden="true">
+        {chapters.map(chapter => <div className="mobile-story-stop" data-scene={chapter.id} key={chapter.id} />)}
+      </div>
+      {mobile ? <div className="sr-only" aria-label="Chapter descriptions">
+        {chapters.map((chapter, index) => {
+          const caption = captionsByChapter[index];
+          return <section key={chapter.id}><h2>{chapter.label}</h2>
+            {caption ? <p>{caption.captions[locale].headline}{caption.kind === "standard" ? ` ${caption.captions[locale].body}` : ""}</p> : null}
+            {caption?.kind === "contact" ? <p>
+              <a href={CONTACT_PHONE_HREF} tabIndex={-1}>{CONTACT_PHONE_LABEL}</a>{" "}
+              <a href={CONTACT_EMAIL_HREF} tabIndex={-1}>{CONTACT_EMAIL}</a>{" "}
+              <a href={CONTACT_HOMEPAGE} tabIndex={-1}>{caption.captions[locale].action}</a>
+            </p> : null}
+          </section>;
+        })}
+      </div> : null}
     </main>
   );
 }

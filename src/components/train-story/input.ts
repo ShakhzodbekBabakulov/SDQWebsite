@@ -109,3 +109,28 @@ export function keyboardIntent(
   if (key === "Escape") return "pause";
   return null;
 }
+
+/** Select the closest stable scroll stop, including elastic overscroll. */
+export function sceneIndexForScroll(
+  scrollTop: number,
+  stepHeight: number,
+  chapterCount = 6,
+): number {
+  if (!Number.isFinite(stepHeight) || stepHeight <= 0 ||
+      !Number.isFinite(scrollTop) || !Number.isFinite(chapterCount) ||
+      chapterCount < 1) return 0;
+  return clamp(Math.round(scrollTop / stepHeight), 0, Math.floor(chapterCount) - 1);
+}
+
+/** Screen dimensions keep a phone on the same film after rotation. */
+export function mobileMediaForViewport(
+  width: number,
+  coarse: boolean,
+  screenWidth: number,
+  screenHeight: number,
+): boolean {
+  const shortEdge = screenWidth > 0 && screenHeight > 0
+    ? Math.min(screenWidth, screenHeight)
+    : width;
+  return width < 768 || (coarse && shortEdge < 768);
+}

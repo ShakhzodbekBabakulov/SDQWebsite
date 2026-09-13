@@ -1,0 +1,78 @@
+{"event":"paired-physical-client"}
+{"method":"GET","path":"/","range":null,"status":200,"contentRange":null,"contentLength":"8254"}
+{"method":"GET","path":"/_next/static/media/44fac91e6f2d2b1b-s.p.1d_6dtvtn9g3_.woff2","range":null,"status":200,"contentRange":null,"contentLength":"21492"}
+{"method":"GET","path":"/_next/static/media/a343f882a40d2cc9-s.p.1sj6eobyi31rd.woff2","range":null,"status":200,"contentRange":null,"contentLength":"24576"}
+{"method":"GET","path":"/_next/static/media/d3fe2f289711ac3f-s.p.1l2zhvq5eocqf.woff2","range":null,"status":200,"contentRange":null,"contentLength":"14544"}
+{"method":"GET","path":"/_next/static/media/e8f2fbee2754df70-s.p.1dqa_6e_ad4sj.woff2","range":null,"status":200,"contentRange":null,"contentLength":"35508"}
+{"method":"GET","path":"/_next/static/chunks/3q5hirtwweuqh.js","range":null,"status":200,"contentRange":null,"contentLength":"177995"}
+{"method":"GET","path":"/_next/static/chunks/30qznubyxv7qq.css","range":null,"status":200,"contentRange":null,"contentLength":"16502"}
+{"method":"GET","path":"/_next/static/chunks/12aruqaur5huj.js","range":null,"status":200,"contentRange":null,"contentLength":"22139"}
+{"method":"GET","path":"/_next/static/chunks/1j_9b-l0n6u-t.js","range":null,"status":200,"contentRange":null,"contentLength":"228922"}
+{"method":"GET","path":"/_next/static/chunks/turbopack-3tz67i07c_pdu.js","range":null,"status":200,"contentRange":null,"contentLength":"9688"}
+{"method":"GET","path":"/_next/static/chunks/3fntmmi971322.js","range":null,"status":200,"contentRange":null,"contentLength":"14377"}
+{"method":"GET","path":"/_next/static/chunks/0pixbalk_t7xg.js","range":null,"status":200,"contentRange":null,"contentLength":"49681"}
+{"method":"GET","path":"/video/sdq-train-poster.jpg","range":null,"status":200,"contentRange":null,"contentLength":"33293"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-poster.jpg","range":null,"status":200,"contentRange":null,"contentLength":"17139"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide.mp4","range":"bytes=0-1","status":206,"contentRange":"bytes 0-1/9717179","contentLength":"2"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=0-1","status":206,"contentRange":"bytes 0-1/9727838","contentLength":"2"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide.mp4","range":"bytes=0-9717178","status":206,"contentRange":"bytes 0-9717178/9717179","contentLength":"9717179"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=0-9727837","status":206,"contentRange":"bytes 0-9727837/9727838","contentLength":"9727838"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=1045550-9727837","status":206,"contentRange":"bytes 1045550-9727837/9727838","contentLength":"8682288"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=7208960-9727837","status":206,"contentRange":"bytes 7208960-9727837/9727838","contentLength":"2518878"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=8126464-8191999","status":206,"contentRange":"bytes 8126464-8191999/9727838","contentLength":"65536"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=8192000-8257535","status":206,"contentRange":"bytes 8192000-8257535/9727838","contentLength":"65536"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide.mp4","range":"bytes=0-1","status":206,"contentRange":"bytes 0-1/9717179","contentLength":"2"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=0-1","status":206,"contentRange":"bytes 0-1/9727838","contentLength":"2"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide.mp4","range":"bytes=0-9717178","status":206,"contentRange":"bytes 0-9717178/9717179","contentLength":"9717179"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=0-9727837","status":206,"contentRange":"bytes 0-9727837/9727838","contentLength":"9727838"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide.mp4","range":"bytes=1920478-9717178","status":206,"contentRange":"bytes 1920478-9717178/9717179","contentLength":"7796701"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide.mp4","range":"bytes=3014656-3080191","status":206,"contentRange":"bytes 3014656-3080191/9717179","contentLength":"65536"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=8192000-9727837","status":206,"contentRange":"bytes 8192000-9727837/9727838","contentLength":"1535838"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=51799-65535","status":206,"contentRange":"bytes 51799-65535/9727838","contentLength":"13737"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide.mp4","range":"bytes=0-1","status":206,"contentRange":"bytes 0-1/9717179","contentLength":"2"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=0-1","status":206,"contentRange":"bytes 0-1/9727838","contentLength":"2"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=8388608-8454143","status":206,"contentRange":"bytes 8388608-8454143/9727838","contentLength":"65536"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide.mp4","range":"bytes=0-9717178","status":206,"contentRange":"bytes 0-9717178/9717179","contentLength":"9717179"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=0-9727837","status":206,"contentRange":"bytes 0-9727837/9727838","contentLength":"9727838"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide.mp4","range":"bytes=8257536-9717178","status":206,"contentRange":"bytes 8257536-9717178/9717179","contentLength":"1459643"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=6160384-8191999","status":206,"contentRange":"bytes 6160384-8191999/9727838","contentLength":"2031616"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=6488064-6553599","status":206,"contentRange":"bytes 6488064-6553599/9727838","contentLength":"65536"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=6553600-6619135","status":206,"contentRange":"bytes 6553600-6619135/9727838","contentLength":"65536"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=8642360-9727837","status":206,"contentRange":"bytes 8642360-9727837/9727838","contentLength":"1085478"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=4128768-6160383","status":206,"contentRange":"bytes 4128768-6160383/9727838","contentLength":"2031616"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=4980736-5046271","status":206,"contentRange":"bytes 4980736-5046271/9727838","contentLength":"65536"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=5046272-5111807","status":206,"contentRange":"bytes 5046272-5111807/9727838","contentLength":"65536"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=5111808-5177343","status":206,"contentRange":"bytes 5111808-5177343/9727838","contentLength":"65536"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=5177344-5242879","status":206,"contentRange":"bytes 5177344-5242879/9727838","contentLength":"65536"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=5242880-6160383","status":206,"contentRange":"bytes 5242880-6160383/9727838","contentLength":"917504"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=3080192-4128767","status":206,"contentRange":"bytes 3080192-4128767/9727838","contentLength":"1048576"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=3735552-3801087","status":206,"contentRange":"bytes 3735552-3801087/9727838","contentLength":"65536"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=4493329-4980735","status":206,"contentRange":"bytes 4493329-4980735/9727838","contentLength":"487407"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=2031616-3080191","status":206,"contentRange":"bytes 2031616-3080191/9727838","contentLength":"1048576"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=65536-2031615","status":206,"contentRange":"bytes 65536-2031615/9727838","contentLength":"1966080"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=524288-589823","status":206,"contentRange":"bytes 524288-589823/9727838","contentLength":"65536"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide.mp4","range":"bytes=0-1","status":206,"contentRange":"bytes 0-1/9717179","contentLength":"2"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=0-1","status":206,"contentRange":"bytes 0-1/9727838","contentLength":"2"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide.mp4","range":"bytes=0-9717178","status":206,"contentRange":"bytes 0-9717178/9717179","contentLength":"9717179"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=0-9727837","status":206,"contentRange":"bytes 0-9727837/9727838","contentLength":"9727838"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide.mp4","range":"bytes=4128768-4194303","status":206,"contentRange":"bytes 4128768-4194303/9717179","contentLength":"65536"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=7208960-9727837","status":206,"contentRange":"bytes 7208960-9727837/9727838","contentLength":"2518878"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=8126464-8191999","status":206,"contentRange":"bytes 8126464-8191999/9727838","contentLength":"65536"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide.mp4","range":"bytes=4194304-9717178","status":206,"contentRange":"bytes 4194304-9717178/9717179","contentLength":"5522875"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide.mp4","range":"bytes=4653056-4718591","status":206,"contentRange":"bytes 4653056-4718591/9717179","contentLength":"65536"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide.mp4","range":"bytes=4718592-4784127","status":206,"contentRange":"bytes 4718592-4784127/9717179","contentLength":"65536"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=8192000-8257535","status":206,"contentRange":"bytes 8192000-8257535/9727838","contentLength":"65536"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=4128768-7208959","status":206,"contentRange":"bytes 4128768-7208959/9727838","contentLength":"3080192"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=4980736-5046271","status":206,"contentRange":"bytes 4980736-5046271/9727838","contentLength":"65536"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=5046272-5111807","status":206,"contentRange":"bytes 5046272-5111807/9727838","contentLength":"65536"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=5111808-5177343","status":206,"contentRange":"bytes 5111808-5177343/9727838","contentLength":"65536"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=7441257-8126463","status":206,"contentRange":"bytes 7441257-8126463/9727838","contentLength":"685207"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide.mp4","range":"bytes=0-1","status":206,"contentRange":"bytes 0-1/9717179","contentLength":"2"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=8257536-9727837","status":206,"contentRange":"bytes 8257536-9727837/9727838","contentLength":"1470302"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=0-1","status":206,"contentRange":"bytes 0-1/9727838","contentLength":"2"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide.mp4","range":"bytes=0-9717178","status":206,"contentRange":"bytes 0-9717178/9717179","contentLength":"9717179"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide-reverse.mp4","range":"bytes=0-9727837","status":206,"contentRange":"bytes 0-9727837/9727838","contentLength":"9727838"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide.mp4","range":"bytes=180631-9717178","status":206,"contentRange":"bytes 180631-9717178/9717179","contentLength":"9536548"}
+{"method":"GET","path":"/video/sdq-train-mobile-wide.mp4","range":"bytes=8257536-9717178","status":206,"contentRange":"bytes 8257536-9717178/9717179","contentLength":"1459643"}
+{"method":"GET","path":"/","range":null,"status":200,"contentRange":null,"contentLength":"8254"}
+{"method":"GET","path":"/video/sdq-train-poster.jpg","range":null,"status":200,"contentRange":null,"contentLength":"33293"}

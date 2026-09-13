@@ -1,3 +1,19 @@
+export const MEDIA = {
+  desktop: {
+    forward: "/video/sdq-train-desktop.mp4",
+    reverse: "/video/sdq-train-desktop-reverse.mp4",
+    poster: "/video/sdq-train-poster.jpg",
+  },
+  mobile: {
+    forward: "/video/sdq-train-mobile-wide.mp4",
+    reverse: "/video/sdq-train-mobile-wide-reverse.mp4",
+    poster: "/video/sdq-train-mobile-wide-poster.jpg",
+  },
+} as const;
+
+export const GREETING_FADE_START_FRAME = 84;
+export const GREETING_FADE_END_FRAME = 95;
+
 export const FPS = 24;
 export const LAST_FRAME = 720;
 export const LOOP_DURATION_MS = 4_000;
@@ -72,3 +88,10 @@ export const loopDurationMs = (chapter: Chapter) =>
   (((chapter.endFrame - chapter.startFrame) / FPS) /
     loopPlaybackRate(chapter)) *
   2_000;
+
+export function captionChapterForFrame(frame: number): number | null {
+  const index = chapters.findIndex(
+    (chapter) => frame >= chapter.startFrame && frame <= chapter.endFrame,
+  );
+  return index === -1 ? null : index;
+}

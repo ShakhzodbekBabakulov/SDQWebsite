@@ -258,3 +258,84 @@ test("keyboard controls use native browsing conventions", () => {
   assert.equal(keyboardIntent("Escape"), "pause");
   assert.equal(keyboardIntent("Enter"), null);
 });
+
+
+test("mobile destinations travel across stops and reverse repeatedly from displayed frames", () => {
+  const controller = createPlaybackController({ startAtRest: true });
+  for (const [index, frame, direction, target] of [
+    [5, 120, 1, 606], [0, 400, -1, 132], [4, 300, 1, 504],
+    [1, 450, -1, 258], [5, 350, 1, 606],
+  ]) {
+    assert.deepEqual(controller.requestChapter(index, 1000, frame), {
+      type: "play", direction, fromFrame: frame, toFrame: target, rate: 1.1,
+    });
+    assert.equal(controller.snapshot().targetChapterIndex, index);
+  }
+  const arrival = controller.complete(606, 2000);
+  assert.equal(arrival.fromFrame, 606);
+  assert.equal(arrival.rate, 0.875);
+  assert.equal(controller.snapshot().chapterIndex, 5);
+});
+
+test("retargeting to the currently visible range loops without a frame jump", () => {
+  const controller = createPlaybackController({ startAtRest: true });
+  controller.requestChapter(5, 1000, 120);
+  const command = controller.requestChapter(2, 1100, 341);
+  assert.deepEqual(command, {
+    type: "loop", fromFrame: 341, startFrame: 324, endFrame: 354,
+    rate: 0.625, durationMs: 4000,
+  });
+  assert.equal(controller.snapshot().phase, "resting");
+  assert.equal(controller.snapshot().chapterIndex, 2);
+});
+
+test("repeated mobile destination requests do not restart playback or prolong swipe locks", () => {
+  const controller = createPlaybackController({ startAtRest: true });
+  controller.jump("last", 1000);
+  assert.equal(controller.requestChapter(5, 1100, 624), null);
+  assert.equal(controller.snapshot().gestureLocked, true);
+  assert.equal(controller.requestChapter(5, 1180, 624), null);
+  assert.equal(controller.snapshot().gestureLocked, false);
+  controller.requestChapter(0, 1200, 624);
+  assert.equal(controller.requestChapter(0, 1300, 550), null);
+  controller.complete(132, 2000);
+  assert.equal(controller.snapshot().gestureLocked, false);
+});
+
+test("opening, wrap, pause and invalid requests preserve the active journey", () => {
+  const controller = createPlaybackController();
+  assert.equal(controller.requestChapter(4, 1000, 40), null);
+  assert.equal(controller.snapshot().phase, "opening");
+  controller.complete(108, 2000);
+  for (const index of [-1, 6, 1.5, NaN]) {
+    assert.equal(controller.requestChapter(index, 2100, 120), null);
+  }
+  assert.equal(controller.requestChapter(4, 2100, NaN), null);
+  controller.pause();
+  assert.equal(controller.requestChapter(4, 2100, 120), null);
+  controller.togglePause();
+  controller.jump("last", 2200);
+  controller.releaseGesture(2400);
+  controller.intent(1, 80, 2500, 624);
+  assert.equal(controller.requestChapter(2, 2600, 650), null);
+  controller.releaseGesture(2700);
+  controller.complete(720, 3000);
+  assert.equal(controller.requestChapter(5, 5000, 40), null);
+  controller.complete(108, 6000);
+  assert.equal(controller.snapshot().gestureLocked, false);
+});
+
+test("a superseded destination completion cannot settle a different mobile destination", () => {
+  const controller = createPlaybackController({ startAtRest: true });
+  controller.requestChapter(4, 1000, 120);
+  controller.requestChapter(0, 1100, 300);
+  assert.equal(controller.complete(504, 2000), null);
+  assert.equal(controller.snapshot().phase, "traveling");
+  assert.equal(controller.complete(132, 3000).fromFrame, 132);
+});
+
+test("reduced-motion mobile destinations hold their approved centre frames", () => {
+  const controller = createPlaybackController({ reducedMotion: true });
+  assert.deepEqual(controller.requestChapter(4, 1000, 120), { type: "hold", frame: 512 });
+  assert.deepEqual(controller.requestChapter(1, 1100, 512), { type: "hold", frame: 243 });
+});

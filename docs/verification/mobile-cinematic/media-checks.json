@@ -1,0 +1,20 @@
+{
+  "sdq-train-mobile-wide.mp4": {
+    "frames": 721,
+    "duration": "30.041667",
+    "bytes": 9717179,
+    "sha256": "6a59873d3f757aa93b0164d7a01bcc18c6218bca1b7bbd1deed2c5378fd732ef",
+    "rangeStatus": 206,
+    "rangeBytes": "1000-1999",
+    "rangeLength": 1000
+  },
+  "sdq-train-mobile-wide-reverse.mp4": {
+    "frames": 721,
+    "duration": "30.041667",
+    "bytes": 9727838,
+    "sha256": "263a69a9e5d57bee74cc596f8b755f5af9c18afb1e5d1df2812b53266bb5ca7c",
+    "rangeStatus": 206,
+    "rangeBytes": "1000-1999",
+    "rangeLength": 1000
+  }
+}
