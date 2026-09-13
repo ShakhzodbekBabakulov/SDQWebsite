@@ -383,98 +383,250 @@ video.film-layer {
   }
 }
 
+.train-story__viewport { display: contents; }
+.mobile-story-track { display: none; }
+
 @media (max-width: 767px), (pointer: coarse) {
+  html, body {
+    position: static;
+    inset: auto;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    overscroll-behavior: auto;
+  }
+  html {
+    background: transparent;
+    scroll-snap-type: y proximity;
+    scrollbar-width: none;
+  }
+  /* Remove the old snap target while the departure cuts back to the opening. */
+  html[data-train-wrap="true"] { scroll-snap-type: none; }
+  html[data-train-wrap="true"] .mobile-story-stop { scroll-snap-align: none; }
+  html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
+  html[data-train-refresh="blocked"], html[data-train-refresh="blocked"] body {
+    overscroll-behavior-y: none;
+  }
   .train-story {
-    touch-action: pan-x pinch-zoom;
+    --mobile-large-height: 100lvh;
+    --mobile-visible-height: 100dvh;
+    --mobile-film-height: min(100lvh, 56.25vw);
+    --mobile-film-top: max(0px, calc((100lvh - var(--mobile-film-height)) / 2));
+    --mobile-foreground-top: 0px;
+    --mobile-foreground-height: var(--mobile-large-height);
+    --mobile-edge-bleed: min(20px, calc(var(--mobile-film-top) / 4));
+    position: relative;
+    inset: auto;
+    display: grid;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    background: transparent;
+    touch-action: pan-y pinch-zoom;
   }
-
-  .video-stage:not([data-variant]) .film-layer {
-    object-fit: cover;
-    object-position: 50% 50%;
+  .train-story__viewport {
+    position: sticky;
+    z-index: 0;
+    top: 0;
+    display: block;
+    grid-area: 1 / 1;
+    align-self: start;
+    width: 100%;
+    height: var(--mobile-large-height);
+    overflow: clip;
+    background: transparent;
   }
-
-  .opening-greeting-frame,
-  .scene-caption,
-  .language-switcher {
+  .video-stage {
+    position: absolute;
+    width: 100%;
+    height: var(--mobile-large-height);
+    background: transparent;
+    overflow: visible;
+  }
+  .video-stage__wallpaper {
+    position: fixed;
+    z-index: -1;
     top: 0;
     left: 0;
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
+    width: 100%;
+    height: 100lvh;
+    pointer-events: none;
+  }
+  .video-stage__wallpaper .video-stage__ambient {
+    /* SDQ's cream set stays light enough for its existing navy lettering. */
+    filter: blur(clamp(48px, 4.5vw, 80px)) brightness(1.4) saturate(0.85);
+  }
+  .video-stage__edge-canvas { z-index: 3; filter: blur(8px); }
+  .film-layer {
+    mask-image: linear-gradient(to bottom,
+      transparent calc((100% - var(--mobile-film-height)) / 2),
+      #000 calc((100% - var(--mobile-film-height)) / 2 + 12px),
+      #000 calc((100% + var(--mobile-film-height)) / 2 - 12px),
+      transparent calc((100% + var(--mobile-film-height)) / 2));
+  }
+  .opening-greeting-stage, .scene-caption, .language-switcher {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: var(--mobile-visible-height);
     transform: none;
   }
-
-  .opening-greeting {
-    top: max(1rem, calc(var(--safe-area-top) + 0.75rem));
+  .opening-greeting-stage { display: block; }
+  .opening-greeting-frame { width: 100%; height: 100%; }
+  .opening-greeting, .scene-caption > h2 {
+    top: max(3.5rem, calc(var(--safe-area-top) + 3rem));
     right: max(1rem, var(--safe-area-right));
     left: max(1rem, var(--safe-area-left));
     width: auto;
-    font-size: clamp(2rem, 10vw, 3.5rem);
-    line-height: 0.96;
-  }
-
-  .scene-caption > h2 {
-    top: max(1rem, calc(var(--safe-area-top) + 0.75rem));
-    right: max(1rem, var(--safe-area-right));
-    left: max(1rem, var(--safe-area-left));
-    width: auto;
-    font-size: clamp(1.45rem, 7vw, 2.25rem);
-    line-height: 1.05;
+    font-size: clamp(1.35rem, 6vw, 2rem);
+    line-height: 1.08;
     transform: none;
     white-space: normal;
     text-wrap: balance;
   }
-
+  .opening-greeting { font-size: clamp(2rem, 8vw, 3rem); }
   .scene-caption > p {
+    color: var(--sdq-navy);
     right: max(1rem, var(--safe-area-right));
     bottom: max(1rem, calc(var(--safe-area-bottom) + 0.75rem));
     left: max(1rem, var(--safe-area-left));
     width: auto;
-    font-size: clamp(0.95rem, 4.1vw, 1.2rem);
+    font-size: clamp(0.95rem, 4vw, 1.2rem);
     line-height: 1.3;
     transform: none;
   }
-
-  .contact-caption {
-    inset: 0;
-    display: block;
-    width: auto;
-    transform: none;
-  }
-
+  .contact-caption { inset: 0; display: block; width: auto; transform: none; }
   .contact-caption h2 {
     position: absolute;
-    top: max(1rem, calc(var(--safe-area-top) + 0.75rem));
+    top: max(3.5rem, calc(var(--safe-area-top) + 3rem));
     right: max(1rem, var(--safe-area-right));
     left: max(1rem, var(--safe-area-left));
     margin: 0;
-    font-size: clamp(2rem, 9vw, 3.25rem);
-    line-height: 0.98;
+    font-size: clamp(1.8rem, 7vw, 2.75rem);
+    line-height: 1.08;
     text-align: center;
   }
-
   .contact-caption__actions {
     position: absolute;
     right: max(1rem, var(--safe-area-right));
-    bottom: max(1rem, calc(var(--safe-area-bottom) + 0.75rem));
+    bottom: max(0.75rem, calc(var(--safe-area-bottom) + 0.5rem));
     left: max(1rem, var(--safe-area-left));
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
   }
-
-  .contact-details {
-    justify-items: center;
-  }
-
-  .contact-action {
-    min-height: 2.75rem;
-    margin-top: 0.75rem;
-  }
-
+  .contact-details { gap: 0; justify-items: center; }
+  .contact-email { color: var(--sdq-navy); }
+  .contact-caption a { display: inline-flex; min-height: 44px; align-items: center; }
+  .contact-action { margin-top: 0.25rem; }
   .language-switcher__control {
-    top: max(0.75rem, calc(var(--safe-area-top) + 0.5rem));
+    top: max(0.25rem, var(--safe-area-top));
     right: max(0.75rem, var(--safe-area-right));
   }
+  .language-switcher button { min-width: 44px; height: 44px; }
+  .language-switcher__options { background: var(--enamel); border-radius: 0.3rem; }
+  .mobile-story-track {
+    position: relative;
+    z-index: 1;
+    grid-area: 1 / 1;
+    display: block;
+    align-self: start;
+    width: 100%;
+    pointer-events: none;
+  }
+  .mobile-story-stop { height: var(--mobile-large-height); scroll-snap-align: start; }
+  .playback-retry {
+    position: absolute;
+    z-index: 6;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.6rem 1rem;
+    border: 1px solid var(--sdq-navy);
+    border-radius: 0.5rem;
+    color: var(--sdq-navy);
+    background: var(--enamel);
+    font: inherit;
+    cursor: pointer;
+  }
+  @supports (animation-timeline: scroll(root block)) {
+    @keyframes train-native-scroll-pin {
+      from { transform: translateY(0); }
+      to { transform: translateY(var(--train-scroll-span)); }
+    }
+    body { contain: paint; }
+    .video-stage__wallpaper {
+      --train-scroll-span: 600lvh;
+      position: absolute;
+      animation: train-native-scroll-pin linear both;
+      animation-timeline: scroll(root block);
+      animation-range: 0px var(--train-scroll-span);
+    }
+  }
+}
+
+@media (max-width: 767px) and (orientation: portrait) {
+  .train-story {
+    --mobile-film-height: min(100lvh, 67.5vw);
+    --mobile-caption-above: clamp(100px, 20lvh, 170px);
+    --mobile-caption-below: clamp(140px, 24lvh, 205px);
+    --mobile-foreground-top: max(0px, calc(var(--mobile-film-top) - var(--mobile-caption-above)));
+    --mobile-foreground-height: min(
+      calc(var(--mobile-film-height) + var(--mobile-caption-above) + var(--mobile-caption-below)),
+      calc(var(--mobile-visible-height) - var(--mobile-foreground-top))
+    );
+  }
+  .train-story__viewport {
+    top: var(--mobile-foreground-top);
+    margin-top: var(--mobile-foreground-top);
+    height: var(--mobile-foreground-height);
+  }
+  .video-stage { top: calc(-1 * var(--mobile-foreground-top)); }
+  .film-layer { left: -10%; width: 120%; max-width: none; }
+  .scene-caption, .opening-greeting-stage, .language-switcher { height: var(--mobile-foreground-height); }
+  @supports (animation-timeline: scroll(root block)) {
+    .mobile-story-track {
+      /* Continue the actual 20px edge blend below the last anchor, capped by
+         available film margin. This never changes stop heights or offsets. */
+      padding-bottom: var(--mobile-edge-bleed);
+    }
+  }
+}
+
+@media (max-height: 500px) and (orientation: landscape) and (pointer: coarse) {
+  .scene-caption > h2, .opening-greeting, .contact-caption h2 {
+    top: max(0.5rem, var(--safe-area-top));
+    left: max(3.5rem, var(--safe-area-left));
+    right: max(3.5rem, var(--safe-area-right));
+    font-size: clamp(1.25rem, 3vw, 1.75rem);
+  }
+  .scene-caption > p { font-size: 0.95rem; bottom: max(0.5rem, var(--safe-area-bottom)); }
+  .contact-caption {
+    top: 50%;
+    right: max(1rem, var(--safe-area-right));
+    bottom: auto;
+    left: 62%;
+    width: auto;
+    transform: translateY(-50%);
+  }
+  .contact-caption h2 {
+    position: static;
+    margin-bottom: 0.5rem;
+    text-align: left;
+    font-size: clamp(1.25rem, 3vw, 1.75rem);
+  }
+  .contact-caption__actions {
+    position: static;
+    align-items: flex-start;
+    text-align: left;
+  }
+  .contact-details { justify-items: start; }
+  .contact-phone { font-size: clamp(1rem, 2.5vw, 1.35rem); }
+  .contact-email { font-size: clamp(0.9rem, 2vw, 1.05rem); }
+  .contact-action { margin-top: 0; }
 }

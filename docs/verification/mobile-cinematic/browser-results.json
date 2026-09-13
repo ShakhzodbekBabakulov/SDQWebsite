@@ -1,0 +1,136 @@
+{
+  "date": "2026-09-13",
+  "mainSuite": {
+    "passed": 111,
+    "failed": 0,
+    "engines": [
+      "Chromium",
+      "Firefox",
+      "WebKit"
+    ],
+    "durationMinutes": 7.4,
+    "report": "/private/tmp/sdq-mobile-regression-final/playwright-report/index.html"
+  },
+  "recoverySuite": {
+    "scenarios": 9,
+    "engines": 3,
+    "passedAcrossFullAndFocusedRuns": 27,
+    "initialFullRun": {
+      "passed": 23,
+      "failed": 1
+    },
+    "correctedReruns": "Anchored WebKit loop measurement and activation synchronization passed; expanded navigation and metadata-only startup each passed all three engines.",
+    "finalWebKitRoundTripsMs": [
+      4357,
+      4180,
+      4268
+    ],
+    "report": "/private/tmp/sdq-mobile-focused-report/index.html"
+  },
+  "note": "All141 cases passed across final combined and focused runs. Combined run137/141; all four affected cases passed after the confirmed-arrival test correction and isolated WebKit verification. Physical iPhone wrap and reverse journey pass. Coverage limitations retained explicitly.",
+  "postStartupSmoke": {
+    "passed": 21,
+    "failed": 0,
+    "report": "/private/tmp/sdq-startup-smoke-report/index.html"
+  },
+  "finalMobileAndResize": {
+    "passed": 21,
+    "failed": 0,
+    "newResizeCases": 3,
+    "report": "/private/tmp/sdq-final-mobile-report/index.html"
+  },
+  "incomingDecoderFollowup": {
+    "passed": 12,
+    "failed": 0,
+    "cases": [
+      "metadata-only reverse with rejected play and tap retry",
+      "delayed reverse delivery",
+      "active reverse reload",
+      "synchronous publication invalidation"
+    ],
+    "engines": 3
+  },
+  "wrapSnapFollowup": {
+    "passed": 3,
+    "failed": 0,
+    "engines": 3,
+    "checks": [
+      "six unchanged stops",
+      "snap disabled during departure and arrival",
+      "snap restored after rest",
+      "stable top for one second"
+    ]
+  },
+  "desktopFinalComparison": {
+    "captures": 12,
+    "pixelIdentical": 12,
+    "dimensions": [
+      "1280x720",
+      "1440x900"
+    ],
+    "includesFinalStillFrameCorrection": true
+  },
+  "finalCombinedRun": {
+    "passed": 137,
+    "failed": 4,
+    "cases": 141,
+    "workers": 3,
+    "durationMinutes": 6.5,
+    "report": "/private/tmp/sdq-final-all-report/index.html",
+    "failures": [
+      "Firefox Partners: test sent wheel while displayed frame107 was still opening",
+      "WebKit navigation: maximum publication gap13frames exceeded12",
+      "WebKit loops: roundtrips5193/5060/4883ms exceeded4700ms",
+      "WebKit ultrawide ambience: nativeclock ran ahead of delivered frames under concurrent rendering"
+    ],
+    "followup": "Three WebKit cases passed unchanged with one worker; six confirmed-arrival opening/Partners checks passed across all three engines."
+  },
+  "physicalIPhone": {
+    "device": "iPhone14Pro",
+    "os": "iOS26.6",
+    "verified": [
+      "all six portrait chapters",
+      "forward/reverse looping",
+      "final720-to-openingwrap",
+      "stable scroll at top after snap restoration",
+      "reverse chapter travel",
+      "portrait screenshots with Safari toolbar states",
+      "landscape playback and bounds telemetry"
+    ],
+    "notVerified": [
+      "settled landscape screenshot",
+      "background-return",
+      "VoiceOver",
+      "pinch zoom",
+      "physical pull-to-refresh",
+      "Android Chrome"
+    ],
+    "report": "device/iphone-safari.md",
+    "temporaryHarnessRemoved": true
+  },
+  "isolatedWebKitFollowup": {
+    "passed": 3,
+    "failed": 0,
+    "workers": 1,
+    "durationMinutes": 1.6,
+    "loopRoundTripsMs": [
+      4577,
+      4443,
+      4268
+    ],
+    "assertionsUnchanged": true,
+    "report": "/private/tmp/sdq-final-isolated-webkit-report/index.html"
+  },
+  "confirmedArrivalFollowup": {
+    "passed": 6,
+    "failed": 0,
+    "workers": 1,
+    "durationSeconds": 55,
+    "report": "/private/tmp/sdq-final-confirmed-arrival-report/index.html"
+  },
+  "staticChecks": {
+    "unitTestsPassed": 32,
+    "lint": "passed",
+    "normalProductionBuild": "passed"
+  }
+}

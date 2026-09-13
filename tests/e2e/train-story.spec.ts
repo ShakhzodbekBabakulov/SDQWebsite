@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+const previewUrl = process.env.SDQ_PREVIEW_URL || "http://127.0.0.1:3000";
+
 const chapterAnnouncement = (page: Page) =>
   page.locator('p[aria-live="polite"]');
 
@@ -41,11 +43,8 @@ async function waitForVisibleChapterFrame(
         (video) => getComputedStyle(video).opacity === "1",
       );
       if (visible.length !== 1) return false;
-      const video = visible[0];
-      const reverse = video.currentSrc.includes("reverse");
-      const frame = reverse
-        ? 720 - video.currentTime * 24
-        : video.currentTime * 24;
+      // The native clock can reach a chapter before its arrival is displayed.
+      const frame = Number(document.querySelector(".video-stage")?.getAttribute("data-frame"));
       return frame >= minimum && frame <= maximum;
     },
     { minimum: minimumFrame, maximum: maximumFrame },
@@ -65,49 +64,6 @@ async function waitForStageFrame(
     },
     { minimum: minimumFrame, maximum: maximumFrame },
   );
-}
-
-// Headless WebKit can stop presenting local video frames under parallel decoder
-// load. This setup helper isolates greeting-state coverage there; Chromium and
-// Firefox deliberately complete the same wrap journeys without media repair.
-async function stabilizeWebKitDecoderForGreetingWrapTest(page: Page) {
-  await page.waitForFunction(
-    () => Number(document.querySelector(".video-stage")?.getAttribute("data-frame")) > 624,
-  );
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    await page.evaluate(async () => {
-      const activeVideo = [...document.querySelectorAll("video")].find(
-        (video) => getComputedStyle(video).opacity === "1",
-      );
-      if (!activeVideo) throw new Error("An active film layer is required");
-      await new Promise<void>((resolve) => {
-        const finish = () => {
-          window.clearTimeout(timeout);
-          activeVideo.removeEventListener("seeked", finish);
-          resolve();
-        };
-        const timeout = window.setTimeout(finish, 1_000);
-        activeVideo.addEventListener("seeked", finish, { once: true });
-        activeVideo.currentTime = 719 / 24;
-      });
-      await activeVideo.play();
-    });
-    const advanced = await page
-      .waitForFunction(
-        () => {
-          const frame = Number(
-            document.querySelector(".video-stage")?.getAttribute("data-frame"),
-          );
-          return frame >= 720 || frame <= 72;
-        },
-        undefined,
-        { timeout: 2_000 },
-      )
-      .then(() => true)
-      .catch(() => false);
-    if (advanced) return;
-  }
-  throw new Error("The wrap departure did not publish its final frame");
 }
 
 async function observeGreetingFadeEndpoint(page: Page) {
@@ -290,7 +246,6 @@ test("the opening greeting stays above the train in short desktop films", async 
 });
 
 test("skipping the first arrival cannot revive the greeting during a later wrap", async ({
-  browserName,
   page,
 }) => {
   test.setTimeout(30_000);
@@ -306,15 +261,11 @@ test("skipping the first arrival cannot revive the greeting during a later wrap"
   await page.keyboard.press("ArrowDown");
   await page.waitForTimeout(500);
   await page.keyboard.press("ArrowDown");
-  if (browserName === "webkit") {
-    await stabilizeWebKitDecoderForGreetingWrapTest(page);
-  }
   await waitForStageFrame(page, 0, 72);
   await expect(greeting).toHaveCount(0);
 });
 
 test("Home during the first arrival permanently disarms the greeting", async ({
-  browserName,
   page,
 }) => {
   test.setTimeout(30_000);
@@ -339,9 +290,6 @@ test("Home during the first arrival permanently disarms the greeting", async ({
   await page.keyboard.press("ArrowDown");
   await page.waitForTimeout(500);
   await page.keyboard.press("ArrowDown");
-  if (browserName === "webkit") {
-    await stabilizeWebKitDecoderForGreetingWrapTest(page);
-  }
   await waitForStageFrame(page, 0, 72);
   await expect(greeting).toHaveCount(0);
 });
@@ -356,7 +304,7 @@ test("the browser language selects the initial locale after hydration", async ({
   const page = await context.newPage();
   const errors = observeBrowserErrors(page);
 
-  await page.goto("http://127.0.0.1:3000/");
+  await page.goto(previewUrl);
   await expect(page.locator(".language-switcher__current")).toHaveText("RU");
   await expect(page.locator("html")).toHaveAttribute("lang", "ru");
   await waitForVisibleChapterFrame(page, 108, 132);
@@ -1352,9 +1300,10 @@ test("reduced motion jumps to a paused centre frame", async ({ browser }) => {
   });
   const page = await context.newPage();
   const errors = observeBrowserErrors(page);
-  await page.goto("http://127.0.0.1:3000/");
+  await page.goto(previewUrl);
   await expect(page.locator("video")).toHaveCount(2);
   await expect(page.locator(".opening-greeting")).toHaveCount(0);
+  await waitForStageFrame(page, 120, 120);
   await expect
     .poll(() =>
       page
@@ -1366,6 +1315,7 @@ test("reduced motion jumps to a paused centre frame", async ({ browser }) => {
 
   await page.mouse.wheel(0, 100);
   await expect(chapterAnnouncement(page)).toHaveText("Official 1C partner");
+  await waitForStageFrame(page, 243, 243);
   await expect
     .poll(() =>
       page
@@ -1374,225 +1324,190 @@ test("reduced motion jumps to a paused centre frame", async ({ browser }) => {
         .evaluate((video) => (video as HTMLVideoElement).currentTime),
     )
     .toBeCloseTo(10.125, 2);
-  expect(
-    await page.locator("video").evaluateAll((videos) =>
+  await expect.poll(
+    () => page.locator("video").evaluateAll((videos) =>
       videos.every((video) => (video as HTMLVideoElement).paused),
     ),
   ).toBe(true);
-  expect(errors).toEqual([]);
-  await context.close();
-});
-
-test("portrait phones load the full edge-to-edge mobile journey", async ({ browser }) => {
-  const context = await browser.newContext({
-    viewport: { width: 390, height: 844 },
-    hasTouch: true,
-  });
-  const page = await context.newPage();
-  const errors = observeBrowserErrors(page);
-  const movieRequests: string[] = [];
-  page.on("request", (request) => {
-    if (request.url().endsWith(".mp4")) movieRequests.push(request.url());
-  });
-
-  await page.goto("http://127.0.0.1:3000/");
-  await expect(page.locator(".video-stage")).toHaveAttribute(
-    "data-variant",
-    "portrait",
+  const held = await page.locator("video").evaluateAll((videos) =>
+    videos.map((video) => (video as HTMLVideoElement).currentTime),
   );
-  await expect(page.locator("video")).toHaveCount(2);
-  const openingFilm = page.locator('video[data-direction="1"]');
-  await expect(openingFilm).toHaveAttribute("autoplay", "");
-  await expect(openingFilm).toHaveAttribute("playsinline", "");
-  expect(
-    await openingFilm.evaluate(
-      (video) => (video as HTMLVideoElement).muted,
-    ),
-  ).toBe(true);
-  await waitForVisibleChapterFrame(page, 108, 132);
-  await expect(page.locator(".scene-caption")).toBeVisible();
-  await expect(page.locator(".language-switcher")).toBeVisible();
-  await expect(page.locator("canvas")).toHaveCount(0);
-  await expect(page.locator(".video-stage__ambient-poster")).toHaveCount(0);
-
-  const presentation = await page.locator(".video-stage").evaluate((stage) => {
-    const bounds = stage.getBoundingClientRect();
-    const video = stage.querySelector("video") as HTMLVideoElement;
-    return {
-      top: bounds.top,
-      left: bounds.left,
-      right: bounds.right,
-      bottom: bounds.bottom,
-      objectFit: getComputedStyle(video).objectFit,
-      objectPosition: getComputedStyle(video).objectPosition,
-    };
-  });
-  expect(presentation).toEqual({
-    top: 0,
-    left: 0,
-    right: 390,
-    bottom: 844,
-    objectFit: "cover",
-    objectPosition: "50% 50%",
-  });
-  expect(movieRequests.some((request) => request.includes("sdq-train-mobile.mp4"))).toBe(true);
-  expect(movieRequests.some((request) => request.includes("sdq-train-desktop.mp4"))).toBe(false);
-  expect(
-    await page.locator('meta[name="viewport"]').getAttribute("content"),
-  ).toContain("viewport-fit=cover");
-  expect(await page.evaluate(() => scrollY)).toBe(0);
+  await page.waitForTimeout(250);
+  await waitForStageFrame(page, 243, 243);
+  expect(await page.locator("video").evaluateAll((videos) =>
+    videos.map((video) => (video as HTMLVideoElement).currentTime),
+  )).toEqual(held);
   expect(errors).toEqual([]);
   await context.close();
 });
 
-test("mobile captions and controls stay inside simulated phone safe areas", async ({
-  browser,
-}) => {
-  const context = await browser.newContext({
-    viewport: { width: 390, height: 844 },
-    hasTouch: true,
-  });
+test("mobile native scroll keeps six stable stops and independent moving ambience", async ({ browser, browserName }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: browserName !== "firefox", reducedMotion: "reduce" });
   const page = await context.newPage();
-  const errors = observeBrowserErrors(page);
-
-  await page.goto("http://127.0.0.1:3000/");
-  await page.evaluate(() => {
-    document.documentElement.style.setProperty("--safe-area-top", "59px");
-    document.documentElement.style.setProperty("--safe-area-right", "12px");
-    document.documentElement.style.setProperty("--safe-area-bottom", "34px");
-    document.documentElement.style.setProperty("--safe-area-left", "12px");
-  });
-  await waitForVisibleChapterFrame(page, 108, 132);
-
-  const layout = await page.locator(".scene-caption").evaluate((caption) => {
-    const heading = caption.querySelector("h2")!.getBoundingClientRect();
-    const body = caption.querySelector("p")!.getBoundingClientRect();
-    const language = document
-      .querySelector(".language-switcher__control")!
-      .getBoundingClientRect();
-    return {
-      headingTop: heading.top,
-      headingLeft: heading.left,
-      headingRight: heading.right,
-      bodyBottom: body.bottom,
-      bodyLeft: body.left,
-      bodyRight: body.right,
-      languageTop: language.top,
-      languageRight: language.right,
-    };
-  });
-
-  expect(layout.headingTop).toBeGreaterThanOrEqual(71);
-  expect(layout.headingLeft).toBeGreaterThanOrEqual(12);
-  expect(layout.headingRight).toBeLessThanOrEqual(378);
-  expect(layout.bodyBottom).toBeLessThanOrEqual(798);
-  expect(layout.bodyLeft).toBeGreaterThanOrEqual(12);
-  expect(layout.bodyRight).toBeLessThanOrEqual(378);
-  expect(layout.languageTop).toBeGreaterThanOrEqual(67);
-  expect(layout.languageRight).toBeLessThanOrEqual(378);
-  expect(errors).toEqual([]);
+  const requests: string[] = [];
+  page.on("request", request => { if (request.url().endsWith(".mp4")) requests.push(request.url()); });
+  await page.goto(previewUrl);
+  await expect(page.locator('.video-stage')).toHaveAttribute('data-variant', 'mobile');
+  await waitForStageFrame(page, 120, 120);
+  await expect(page.locator('.mobile-story-stop')).toHaveCount(6);
+  await expect(page.locator('[aria-label="Chapter descriptions"] section')).toHaveCount(6);
+  await expect(page.locator('[aria-label="Chapter descriptions"] a[href="tel:+998555889000"]')).toHaveCount(1);
+  await expect(page.locator('[aria-label="Chapter descriptions"] a[href="mailto:info@sdq-sfb.com"]')).toHaveCount(1);
+  expect(await page.evaluate(() => ({
+    native: document.documentElement.scrollHeight > innerHeight * 5,
+    panning: getComputedStyle(document.querySelector('main')!).touchAction,
+    portal: document.querySelector('.video-stage__wallpaper')?.parentElement === document.body,
+    snap: getComputedStyle(document.documentElement).scrollSnapType,
+  }))).toEqual({ native: true, panning: 'pan-y pinch-zoom', portal: true, snap: 'y' });
+  const centers = [120, 243, 339, 420, 512, 624];
+  for (const index of [0, 1, 2, 3, 4, 5, 3, 0]) {
+    await page.evaluate(index => window.scrollTo({ top: index * document.querySelector('.mobile-story-stop')!.getBoundingClientRect().height, behavior: 'instant' }), index);
+    await waitForStageFrame(page, centers[index], centers[index]);
+    await expect(page.locator('.scene-caption')).toBeVisible();
+    await expect(page.locator('.video-stage__ambient-canvas')).toHaveAttribute('data-frame', String(centers[index]));
+  }
+  expect(requests.every(url => url.includes('mobile-wide'))).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await context.close();
 });
 
-test("mobile contact keeps its headline above and actions below the train", async ({
-  browser,
-}) => {
-  const context = await browser.newContext({
-    viewport: { width: 390, height: 844 },
-    hasTouch: true,
-    reducedMotion: "reduce",
-  });
+test("mobile ambient positioning survives native scrolling with its supported and fallback paths", async ({ browser, browserName }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: browserName !== "firefox", reducedMotion: "reduce" });
   const page = await context.newPage();
-  const errors = observeBrowserErrors(page);
+  await page.goto(previewUrl);
+  await waitForStageFrame(page, 120, 120);
+  for (const fallback of [false, true]) {
+    if (fallback) await page.evaluate(() => {
+      const removeScrollTimelineBlocks = (owner: CSSStyleSheet | CSSGroupingRule) => {
+        for (let index = owner.cssRules.length - 1; index >= 0; index -= 1) {
+          const rule = owner.cssRules[index];
+          if (rule instanceof CSSSupportsRule && rule.conditionText.includes("animation-timeline")) owner.deleteRule(index);
+          else if (rule instanceof CSSGroupingRule) removeScrollTimelineBlocks(rule);
+        }
+      };
+      for (const sheet of document.styleSheets) removeScrollTimelineBlocks(sheet);
+    });
+    for (const [index, frame] of [[2, 339], [5, 624], [0, 120]]) {
+      await page.evaluate(index => scrollTo({ top: index * document.querySelector('.mobile-story-stop')!.getBoundingClientRect().height, behavior: 'instant' }), index);
+      await waitForStageFrame(page, frame, frame);
+      await expect.poll(() => page.locator('.video-stage__wallpaper').evaluate(element => Math.abs(element.getBoundingClientRect().top))).toBeLessThan(1);
+      const stops = await page.locator('.mobile-story-stop').evaluateAll(elements => elements.map(element => ({ top: element.getBoundingClientRect().top + scrollY, height: element.getBoundingClientRect().height })));
+      expect(stops).toHaveLength(6);
+      stops.forEach((stop, index) => expect(stop.top).toBeCloseTo(index * stops[0].height, 1));
+    }
+    if (fallback) expect(await page.locator('.video-stage__wallpaper').evaluate(element => getComputedStyle(element).position)).toBe('fixed');
+  }
+  await context.close();
+});
 
-  await page.goto("http://127.0.0.1:3000/");
-  await page.evaluate(() => {
-    document.documentElement.style.setProperty("--safe-area-top", "59px");
-    document.documentElement.style.setProperty("--safe-area-right", "12px");
-    document.documentElement.style.setProperty("--safe-area-bottom", "34px");
-    document.documentElement.style.setProperty("--safe-area-left", "12px");
-  });
-  await page.keyboard.press("End");
+test("touch tablets use native chapter scrolling with the complete desktop film", async ({ browser, browserName }) => {
+  const context = await browser.newContext({ viewport: { width: 1024, height: 768 }, screen: { width: 1024, height: 768 }, hasTouch: true, isMobile: browserName !== 'firefox', reducedMotion: 'reduce' });
+  const page = await context.newPage();
+  await page.goto(previewUrl);
+  await waitForStageFrame(page, 120, 120);
+  await expect(page.locator('.train-story')).toHaveAttribute('data-mobile', 'true');
+  await expect(page.locator('.video-stage')).toHaveAttribute('data-variant', 'wide');
+  await expect(page.locator('.mobile-story-stop')).toHaveCount(6);
+  for (const [index, frame] of [[2, 339], [5, 624]]) {
+    await page.evaluate(index => scrollTo({ top: index * document.querySelector('.mobile-story-stop')!.getBoundingClientRect().height, behavior: 'instant' }), index);
+    await waitForStageFrame(page, frame, frame);
+  }
+  const film = await page.locator('video').first().evaluate((element: HTMLVideoElement) => ({ width: element.getBoundingClientRect().width, fit: getComputedStyle(element).objectFit, source: element.currentSrc }));
+  expect(film.width).toBe(1024);
+  expect(film.fit).toBe('contain');
+  expect(film.source).toContain('sdq-train-desktop.mp4');
+  await context.close();
+});
+
+test("mobile portrait captions, four languages and touch controls fit the bounded foreground", async ({ browser, browserName }) => {
+  const context = await browser.newContext({ viewport: { width: 320, height: 568 }, hasTouch: true, isMobile: browserName !== 'firefox', reducedMotion: 'reduce' });
+  const page = await context.newPage();
+  await page.goto(previewUrl);
+  await waitForStageFrame(page, 120, 120);
+  for (const locale of ['UZ', 'ЎЗ', 'RU', 'EN'] as const) {
+    await chooseLanguage(page, locale);
+    for (const index of [0, 2, 5]) {
+      await page.evaluate(index => scrollTo({ top: index * document.querySelector('.mobile-story-stop')!.getBoundingClientRect().height, behavior: 'instant' }), index);
+      await waitForStageFrame(page, [120,243,339,420,512,624][index], [120,243,339,420,512,624][index]);
+      const geometry = await page.evaluate(() => {
+        const foreground = document.querySelector('.train-story__viewport')!.getBoundingClientRect();
+        const elements = [...document.querySelectorAll('.scene-caption h2, .scene-caption > p, .scene-caption a, .language-switcher__current')];
+        return elements.map(element => {
+          const r = element.getBoundingClientRect();
+          return { inside: r.left >= -0.1 && r.right <= innerWidth + 0.1 && r.top >= foreground.top - 0.1 && r.bottom <= Math.min(innerHeight, foreground.bottom) + 0.1,
+            tap: element.tagName === 'A' || element.tagName === 'BUTTON' ? r.height >= 43.9 && r.width >= 43.9 : true };
+        });
+      });
+      expect(geometry.every(value => value.inside && value.tap)).toBe(true);
+    }
+  }
+  await expect(page.locator('.contact-phone')).toHaveAttribute('href', 'tel:+998555889000');
+  await expect(page.locator('.contact-email')).toHaveAttribute('href', 'mailto:info@sdq-sfb.com');
+  await expect(page.locator('meta[name="viewport"]')).not.toHaveAttribute('content', /user-scalable=no|maximum-scale=1/);
+  await context.close();
+});
+
+test("phone rotation preserves chapter and native video instances without loading desktop media", async ({ browser, browserName }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, screen: { width: 390, height: 844 }, hasTouch: true, isMobile: browserName !== 'firefox', reducedMotion: 'reduce' });
+  const page = await context.newPage();
+  await page.goto(previewUrl);
+  await waitForStageFrame(page, 120, 120);
+  await page.evaluate(() => scrollTo({ top: 2 * document.querySelector('.mobile-story-stop')!.getBoundingClientRect().height, behavior: 'instant' }));
+  await waitForStageFrame(page, 339, 339);
+  const videos = await page.locator('video').elementHandles();
+  for (const size of [{width:844,height:390},{width:844,height:330},{width:390,height:844}]) {
+    await page.setViewportSize(size);
+    await waitForStageFrame(page, 339, 339);
+    for (const video of videos) expect(await video.evaluate(video => video.isConnected)).toBe(true);
+    await expect(page.locator('.video-stage')).toHaveAttribute('data-variant', 'mobile');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+  await context.close();
+});
+
+test("resizing across the mobile boundary preserves media, travel destination and pause", async ({ page }) => {
+  await page.setViewportSize({ width: 1000, height: 720 });
+  await page.goto(previewUrl);
+  await waitForStageFrame(page, 108, 132);
+  const videos = await page.locator('video').elementHandles();
+  const sources = await page.locator('video').evaluateAll(elements => elements.map(video => (video as HTMLVideoElement).currentSrc));
+  await page.keyboard.press('ArrowDown');
+  await waitForStageFrame(page, 145, 175);
+  for (const width of [700, 1000]) {
+    const before = Number(await page.locator('.video-stage').getAttribute('data-frame'));
+    await page.setViewportSize({ width, height: 720 });
+    for (const video of videos) expect(await video.evaluate(video => video.isConnected)).toBe(true);
+    const after = Number(await page.locator('.video-stage').getAttribute('data-frame'));
+    expect(after).toBeGreaterThanOrEqual(before - 1);
+    expect(after - before).toBeLessThan(24);
+    await expect(page.locator('.video-stage')).toHaveAttribute('data-direction', '1');
+  }
+  await page.keyboard.press('p');
+  await expect.poll(() => page.locator('video').evaluateAll(elements => elements.every(video => (video as HTMLVideoElement).paused))).toBe(true);
+  const pausedFrame = Number(await page.locator('.video-stage').getAttribute('data-frame'));
+  for (const width of [700, 1000]) {
+    await page.setViewportSize({ width, height: 720 });
+    for (const video of videos) expect(await video.evaluate(video => video.isConnected)).toBe(true);
+    expect(Number(await page.locator('.video-stage').getAttribute('data-frame'))).toBe(pausedFrame);
+    expect(await page.locator('video').evaluateAll(elements => elements.every(video => (video as HTMLVideoElement).paused))).toBe(true);
+  }
+  expect(await page.locator('video').evaluateAll(elements => elements.map(video => (video as HTMLVideoElement).currentSrc))).toEqual(sources);
+  await page.keyboard.press('p');
+  await waitForStageFrame(page, 228, 258);
+});
+
+test("landscape mobile contact occupies the clear right side of the film", async ({ browser, browserName }) => {
+  const context = await browser.newContext({ viewport: { width: 844, height: 390 }, screen: { width: 390, height: 844 }, hasTouch: true, isMobile: browserName !== 'firefox', reducedMotion: 'reduce' });
+  const page = await context.newPage();
+  await page.goto(previewUrl);
+  await waitForStageFrame(page, 120, 120);
+  await page.evaluate(() => scrollTo({ top: 5 * document.querySelector('.mobile-story-stop')!.getBoundingClientRect().height, behavior: 'instant' }));
   await waitForStageFrame(page, 624, 624);
-
-  const contact = page.locator(".scene-caption.is-contact");
-  await expect(contact).toBeVisible();
-  const layout = await contact.evaluate((caption) => {
-    const heading = caption.querySelector("h2")!.getBoundingClientRect();
-    const actions = caption
-      .querySelector(".contact-caption__actions")!
-      .getBoundingClientRect();
-    return {
-      headingTop: heading.top,
-      headingBottom: heading.bottom,
-      actionsTop: actions.top,
-      actionsBottom: actions.bottom,
-      headingLeft: heading.left,
-      headingRight: heading.right,
-      actionsLeft: actions.left,
-      actionsRight: actions.right,
-    };
-  });
-
-  expect(layout.headingTop).toBeGreaterThanOrEqual(71);
-  expect(layout.headingBottom).toBeLessThan(844 / 3);
-  expect(layout.actionsTop).toBeGreaterThan(844 * 0.6);
-  expect(layout.actionsBottom).toBeLessThanOrEqual(798);
-  expect(layout.headingLeft).toBeGreaterThanOrEqual(12);
-  expect(layout.headingRight).toBeLessThanOrEqual(378);
-  expect(layout.actionsLeft).toBeGreaterThanOrEqual(12);
-  expect(layout.actionsRight).toBeLessThanOrEqual(378);
-  expect(errors).toEqual([]);
-  await context.close();
-});
-
-test("vertical phone swipes move one carriage and rotation keeps that carriage", async ({
-  browser,
-}) => {
-  test.setTimeout(35_000);
-  const context = await browser.newContext({
-    viewport: { width: 390, height: 844 },
-    hasTouch: true,
-  });
-  const page = await context.newPage();
-  const errors = observeBrowserErrors(page);
-  await page.goto("http://127.0.0.1:3000/");
-  await waitForVisibleChapterFrame(page, 108, 132);
-  await expect(page.locator(".scene-caption")).toBeVisible();
-
-  await page.locator(".train-story").dispatchEvent("pointerdown", {
-    pointerId: 1,
-    pointerType: "touch",
-    isPrimary: true,
-    clientX: 195,
-    clientY: 650,
-  });
-  await page.locator(".train-story").dispatchEvent("pointerup", {
-    pointerId: 1,
-    pointerType: "touch",
-    isPrimary: true,
-    clientX: 202,
-    clientY: 520,
-  });
-  await expect(chapterAnnouncement(page)).toHaveText("Official 1C partner");
-  await waitForVisibleChapterFrame(page, 228, 258);
-
-  await page.setViewportSize({ width: 844, height: 390 });
-  await expect(page.locator(".video-stage")).toHaveAttribute(
-    "data-variant",
-    "wide",
-  );
-  await expect(chapterAnnouncement(page)).toHaveText("Official 1C partner");
-  await waitForVisibleChapterFrame(page, 228, 258);
-  await expect
-    .poll(() =>
-      page
-        .locator("video")
-        .first()
-        .evaluate((video) => (video as HTMLVideoElement).currentSrc),
-    )
-    .toContain("sdq-train-desktop.mp4");
-  expect(errors).toEqual([]);
+  const boxes = await page.locator('.contact-caption h2, .contact-caption a').evaluateAll(elements => elements.map(element => {
+    const r = element.getBoundingClientRect();
+    return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+  }));
+  expect(boxes.every(box => box.left >= 844 * 0.6 && box.right <= 844 && box.top >= 0 && box.bottom <= 390)).toBe(true);
   await context.close();
 });
 

@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const previewUrl = process.env.SDQ_PREVIEW_URL || "http://127.0.0.1:3000";
+
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
@@ -11,12 +13,12 @@ export default defineConfig({
   },
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: "http://127.0.0.1:3000",
+    baseURL: previewUrl,
     trace: "retain-on-failure",
   },
   webServer: {
-    command: "npm run start",
-    url: "http://127.0.0.1:3000",
+    command: `npm run start -- --port ${new URL(previewUrl).port || "3000"}`,
+    url: previewUrl,
     reuseExistingServer: true,
     timeout: 30_000,
   },
