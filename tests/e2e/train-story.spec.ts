@@ -1496,6 +1496,86 @@ test("resizing across the mobile boundary preserves media, travel destination an
   await waitForStageFrame(page, 228, 258);
 });
 
+for (const viewport of [{ width: 844, height: 330 }, { width: 667, height: 280 }]) {
+  test(`landscape film and all translated overlays fit below expanded browser bars at ${viewport.width}px`, async ({ browser, browserName }) => {
+    test.setTimeout(60_000);
+    const context = await browser.newContext({ viewport, screen: { width: 390, height: 844 }, hasTouch: true, isMobile: browserName !== 'firefox', reducedMotion: 'reduce' });
+    const page = await context.newPage();
+    await page.goto(previewUrl);
+    await waitForStageFrame(page, 120, 120);
+    // Desktop emulation normally makes lvh and dvh identical. Keep the chapter
+    // stops tall while the foreground must fit the smaller visible viewport.
+    await page.addStyleTag({ content: '.train-story { --mobile-large-height: 390px; --mobile-visible-height: 100dvh; --safe-area-left: 44px; --safe-area-right: 44px; --safe-area-top: 0px; --safe-area-bottom: 20px; }' });
+    // Synchronize the controller's cached chapter spacing after this test-only
+    // change to lvh; real browser-bar changes leave that spacing unchanged.
+    await page.evaluate(() => window.dispatchEvent(new Event('resize')));
+    const centers = [120, 243, 339, 420, 512, 624];
+    for (const locale of ['UZ', 'ЎЗ', 'RU', 'EN'] as const) {
+      await chooseLanguage(page, locale);
+      for (const [index, frame] of centers.entries()) {
+        await page.evaluate(index => scrollTo({ top: index * document.querySelector('.mobile-story-stop')!.getBoundingClientRect().height, behavior: 'instant' }), index);
+        await waitForStageFrame(page, frame, frame);
+        await expect(page.locator('.scene-caption')).toBeVisible();
+        const geometry = await page.evaluate(() => {
+          const video = document.querySelector('video.is-active') as HTMLVideoElement;
+          const bounds = video.getBoundingClientRect();
+          const fit = Math.min(bounds.width / video.videoWidth, bounds.height / video.videoHeight);
+          const filmWidth = video.videoWidth * fit;
+          const filmHeight = video.videoHeight * fit;
+          const film = { left: bounds.left + (bounds.width - filmWidth) / 2, top: bounds.top + (bounds.height - filmHeight) / 2, right: bounds.left + (bounds.width + filmWidth) / 2, bottom: bounds.top + (bounds.height + filmHeight) / 2 };
+          const foreground = document.querySelector('.train-story__viewport')!.getBoundingClientRect();
+          const overlays = [...document.querySelectorAll('.scene-caption h2, .scene-caption > p, .scene-caption a, .language-switcher__current')].map(element => {
+            const r = element.getBoundingClientRect();
+            return { text: element.textContent, inside: r.left >= 43.9 && r.right <= innerWidth - 43.9 && r.top >= -0.1 && r.bottom <= innerHeight - 19.9,
+              tap: element.matches('a, button') ? r.height >= 43.9 && r.width >= 43.9 : true };
+          });
+          return { film, overlays, foregroundBottom: foreground.bottom, stageHeight: bounds.height, fit: getComputedStyle(video).objectFit, stopHeight: document.querySelector('.mobile-story-stop')!.getBoundingClientRect().height };
+        });
+        expect(geometry.fit).toBe('contain');
+        expect(geometry.stopHeight).toBe(390);
+        expect(geometry.film.left).toBeGreaterThanOrEqual(-0.1);
+        expect(geometry.film.right).toBeLessThanOrEqual(viewport.width + 0.1);
+        expect(geometry.film.top).toBeGreaterThanOrEqual(-0.1);
+        expect(geometry.film.bottom).toBeLessThanOrEqual(viewport.height + 0.1);
+        expect(geometry.foregroundBottom).toBeCloseTo(viewport.height, 0);
+        expect(geometry.stageHeight).toBeCloseTo(viewport.height, 0);
+        expect(geometry.overlays.filter(overlay => !overlay.inside || !overlay.tap), `${locale}, scene ${index + 1}`).toEqual([]);
+      }
+    }
+    await context.close();
+  });
+}
+
+test("paused film repaints its soft edges when only the stage size changes", async ({ browser, browserName }) => {
+  const context = await browser.newContext({ viewport: { width: 844, height: 390 }, screen: { width: 390, height: 844 }, hasTouch: true, isMobile: browserName !== 'firefox', reducedMotion: 'reduce' });
+  const page = await context.newPage();
+  await page.goto(previewUrl);
+  await waitForStageFrame(page, 120, 120);
+  await expect.poll(() => page.locator('video').evaluateAll(videos => videos.every(video => (video as HTMLVideoElement).paused))).toBe(true);
+  await expect(page.locator('.video-stage__edge-canvas')).toHaveAttribute('data-painted', 'true');
+  const videos = await page.locator('video').elementHandles();
+  const media = await page.locator('video').evaluateAll(videos => videos.map(video => ({ source: (video as HTMLVideoElement).currentSrc, time: (video as HTMLVideoElement).currentTime })));
+  await page.evaluate(() => {
+    document.documentElement.dataset.testWindowResizes = '0';
+    window.addEventListener('resize', () => { document.documentElement.dataset.testWindowResizes = String(Number(document.documentElement.dataset.testWindowResizes) + 1); });
+  });
+  for (const height of [310, 350]) {
+    await page.locator('.video-stage').evaluate((stage, height) => { (stage as HTMLElement).style.height = `${height}px`; }, height);
+    await expect.poll(() => page.locator('.video-stage__edge-canvas').evaluate((canvas: HTMLCanvasElement) => canvas.height)).toBe(height);
+    const paintedPixels = await page.locator('.video-stage__edge-canvas').evaluate((canvas: HTMLCanvasElement) => {
+      const pixels = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
+      return pixels.some((value, index) => index % 4 === 3 && value > 0);
+    });
+    expect(paintedPixels).toBe(true);
+    await expect(page.locator('.video-stage__edge-canvas')).toHaveAttribute('data-frame', '120');
+    await waitForStageFrame(page, 120, 120);
+    for (const video of videos) expect(await video.evaluate(video => video.isConnected && (video as HTMLVideoElement).paused)).toBe(true);
+  }
+  expect(await page.locator('video').evaluateAll(videos => videos.map(video => ({ source: (video as HTMLVideoElement).currentSrc, time: (video as HTMLVideoElement).currentTime })))).toEqual(media);
+  await expect(page.locator('html')).toHaveAttribute('data-test-window-resizes', '0');
+  await context.close();
+});
+
 test("landscape mobile contact occupies the clear right side of the film", async ({ browser, browserName }) => {
   const context = await browser.newContext({ viewport: { width: 844, height: 390 }, screen: { width: 390, height: 844 }, hasTouch: true, isMobile: browserName !== 'firefox', reducedMotion: 'reduce' });
   const page = await context.newPage();

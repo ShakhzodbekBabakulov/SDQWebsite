@@ -599,6 +599,27 @@ video.film-layer {
 }
 
 @media (max-height: 500px) and (orientation: landscape) and (pointer: coarse) {
+  .train-story {
+    --mobile-foreground-height: var(--mobile-visible-height);
+    --mobile-film-height: min(var(--mobile-visible-height), 56.25vw);
+    --mobile-film-top: max(0px, calc((var(--mobile-visible-height) - var(--mobile-film-height)) / 2));
+  }
+  .train-story__viewport, .video-stage {
+    /* Safari bars reduce the visible film area without moving chapter stops. */
+    height: var(--mobile-foreground-height);
+  }
+  @supports (animation-timeline: scroll(root block)) {
+    .train-story__viewport {
+      /* Match the reference's landscape pinning: Safari delays repainting the
+         portrait sticky surface after rotation. Equal distances track scroll. */
+      --train-scroll-span: calc(6 * var(--mobile-large-height));
+      position: absolute;
+      top: 0;
+      animation: train-native-scroll-pin linear both;
+      animation-timeline: scroll(root block);
+      animation-range: 0px var(--train-scroll-span);
+    }
+  }
   .scene-caption > h2, .opening-greeting, .contact-caption h2 {
     top: max(0.5rem, var(--safe-area-top));
     left: max(3.5rem, var(--safe-area-left));
@@ -607,7 +628,7 @@ video.film-layer {
   }
   .scene-caption > p { font-size: 0.95rem; bottom: max(0.5rem, var(--safe-area-bottom)); }
   .contact-caption {
-    top: 50%;
+    top: calc((100% + var(--safe-area-top) - var(--safe-area-bottom)) / 2);
     right: max(1rem, var(--safe-area-right));
     bottom: auto;
     left: 62%;

@@ -64,3 +64,41 @@ Use real decoding; recovery tests must not manually repair the player. Test actu
 ## What to do next
 
 Review the local mobile preview and complete remaining physical-device acceptance before any deployment. No deployment or merge was performed.
+
+## Approved landscape fit correction — 2026-09-14
+
+Goal: show the complete train and readable overlays after iPhone Safari rotation, with its bars expanded or collapsed. Baseline reproduced in iPhone 17 Pro Simulator / iOS 26.5: landscape crops the wheels while Safari bars are expanded; browser-only rotation coverage missed it.
+
+1. Preserve this baseline and compare native visible geometry before/after.
+2. In src/app/globals.css, use visible 100dvh height for the short touch-landscape foreground, video and film blend geometry; retain 100lvh scrolling stops/background. Keep overlays and contact controls inside visible safe areas.
+3. In src/components/train-story/VideoStage.tsx, observe actual stage resizing and repaint soft edges from the current decoded frame, including paused/reduced-motion states; disconnect on cleanup. Preserve player instances and sources.
+4. In tests/e2e/train-story.spec.ts, cover film bounds, overlays, rotation, independent visible/large heights, and edge repainting without window resizing.
+5. Run unit tests, lint, build, browser regressions, then native iPhone Simulator rotation and expanded/collapsed bar checks across all scenes. Make the verified local preview available for physical-iPhone acceptance.
+
+Preserve portrait/tablet/desktop appearance, all content and media, native scrolling and pinch zoom. No packages, public interface changes, merge or deployment.
+
+### Landscape correction verification
+
+- Implemented visible-height landscape film/foreground and matching blend geometry; preserved large-height chapter stops and background. Added stage ResizeObserver repaint with cleanup and safe-area-centered landscape contact panel.
+- 32 unit tests pass; ESLint, production build, and diff whitespace check pass. The isolated worktree uses a local copy of existing dependencies because Turbopack rejects a symlink outside its project root. The normal build fetched the existing fonts with network permission; no dependency/config changes.
+- New regression cases failed on baseline for the intended film-overflow and paused-edge-resize defects. Final new coverage: 9/9 pass across Chromium, Firefox and WebKit; both compact sizes, all six scenes and four languages, safe areas, and stage-only resizing without window resize. Test setup explicitly notifies the controller once after overriding large-height geometry; this is not a physical Safari toolbar simulation.
+- Existing browser suite: 137/141 passed in the combined run. Two Chromium cases failed when concurrent test runs shared an artifact directory; one Chromium paused-time precision check and one WebKit frame-sampling tolerance check also failed. Isolated one-worker rerun of the corresponding six Chromium/WebKit cases passed 6/6 with unchanged application code. All 150 browser cases have passed across final full/focused/rerun coverage; not a single clean 150-case invocation.
+- Native iPhone 17 Pro Simulator / iOS 26.5: inspected all six English scenes with expanded Safari bars, both landscape orientations, direct landscape opening, and portrait return retaining the contact scene. Full train and contact controls visible. Expanded-bar native measurements: innerHeight=visualViewport.height=stage.height=292; collapsed=402; scale=1; scene scroll stop remains 402. Collapsed-bar partner/contact captures also inspected.
+- Native captures are in /private/tmp/sdq-landscape-fixed-expanded.png, /private/tmp/sdq-landscape-fixed-opposite.png, /private/tmp/sdq-landscape-fixed-fresh.png, /private/tmp/sdq-landscape-native-four.png, /private/tmp/sdq-landscape-native-five.png, /private/tmp/sdq-landscape-native-contact.png and /private/tmp/sdq-landscape-native-contact-collapsed.png. Full browser-bar animation smoothness and physical-iPhone acceptance remain device checks; the correction follows Safari's native dynamic viewport updates.
+- Read-only review found no material issues. Fixed production preview runs on port 3000 from this worktree; user phone URL: http://192.168.1.104:3000 on the same Wi-Fi. Changes remain local on codex/landscape-fit; no merge, push or deployment.
+
+Next: user checks the fixed local preview on their physical iPhone before shipping.
+
+### Rotation transition follow-up
+
+- User supplied a physical Safari screenshot showing only the blurred background and an enlarged, displaced language control, then reported that the layout eventually adapts. Earlier settled-layout checks did not cover this delay.
+- Reproduced the same transition in native iPhone Safari Simulator twice. Geometry becomes correct at resize, but animation-frame sampling then pauses for about 4.2 seconds, followed by another roughly 2-second gap. The physical phone's passive measurement connection is working; its rotation trace is still pending.
+- Compared an isolated preview using Babakulov.live's existing landscape scroll-timeline positioning. The train remained visible in the first post-rotation capture and the next animation sample arrived after 144ms. Reverting to the original positioning reproduced the blank view again.
+- Apply that native positioning only within the existing short touch-landscape rule and feature detection. Preserve visible-height sizing, portrait sticky framing, chapter stops, source videos, and the sticky fallback for unsupported browsers.
+- Verify the actual production build with native rotation captures and existing cross-browser rotation, landscape, chapter, contact, and fallback checks before reporting completion. No merge or deployment.
+- Physical baseline confirmed after the user rotated the measured Safari page: dimensions changed from 393x695 to 852x283 and zoom remained 1. The next animation samples arrived after gaps of 11,063ms and 5,654ms, matching the reported delayed adaptation.
+- The first cross-browser pass exposed two failures at 667x280 with test-overridden chapter height: a literal 600lvh animation range ended before the six taller stops. The landscape range now derives from `calc(6 * var(--mobile-large-height))`, keeping translation and chapter spacing aligned.
+- Final production build, whitespace check, and all 32 unit tests pass. All 27 focused Chromium/Firefox/WebKit checks pass in one single-worker run, covering both compact landscape sizes, all chapters and languages, contact controls, portrait, rotation/media preservation, tablets, ambience fallback, and paused edge repainting.
+- Native Safari Simulator production verification: first rotation capture retains the train, with animation sampling resuming after 123ms instead of the reproducible multi-second baseline pause. Final shared-height build inspected in both landscape directions. Captures: /private/tmp/sdq-rotation-built-fix.png, /private/tmp/sdq-rotation-final-opposite.png, /private/tmp/sdq-rotation-final-left.png; repeated baseline: /private/tmp/sdq-rotation-baseline-repeat.png.
+- The corrected page has been opened on the physical iPhone, and the user was asked to repeat rotation. At completion of local checks, that second rotation had not yet arrived. Physical corrected-Safari confirmation and physical Chrome rotation remain pending; the simulator and desktop browser engines do not establish those results. No deployment, push, or merge.
+- Acceptance update: the user subsequently confirmed the corrected Safari rotation works on the physical iPhone, then confirmed all works fine and authorized commit, push, and merge. This is user-reported acceptance; no additional automated physical-Chrome result is claimed.

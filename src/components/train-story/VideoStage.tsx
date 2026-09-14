@@ -427,9 +427,14 @@ export const VideoStage = forwardRef<VideoStageHandle, VideoStageProps>(
       edge.addEventListener("contextlost", handleEdgeContextLost);
       edge.addEventListener("contextrestored", handleEdgeContextRestored);
       window.addEventListener("resize", handleResize);
+      // Browser bars can resize the stage while the window and paused frame
+      // stay unchanged. Repaint the decoded picture at its new edge bounds.
+      const stageResizeObserver = new ResizeObserver(handleResize);
+      if (stageRef.current) stageResizeObserver.observe(stageRef.current);
       if (ambientPoster.complete) paintPosterExtension();
 
       return () => {
+        stageResizeObserver.disconnect();
         paintAmbientRef.current = () => {};
         ambientPoster.removeEventListener("load", paintPosterExtension);
         ambient.removeEventListener("contextlost", handleAmbientContextLost);
