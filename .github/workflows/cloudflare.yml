@@ -151,7 +151,31 @@ jobs:
         shell: bash
         env:
           DEPLOYMENT_URL: ${{ steps.preview.outputs.deployment-url }}
-        run: test -n "$DEPLOYMENT_URL"
+        run: |
+          node <<'NODE'
+          let deployment;
+          try {
+            deployment = new URL(process.env.DEPLOYMENT_URL);
+          } catch {
+            console.error("Cloudflare did not return a valid deployment URL.");
+            process.exit(1);
+          }
+
+          const projectDeployment = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.sdq-website\.pages\.dev$/;
+          const valid = deployment.protocol === "https:"
+            && projectDeployment.test(deployment.hostname)
+            && deployment.username === ""
+            && deployment.password === ""
+            && deployment.port === ""
+            && deployment.pathname === "/"
+            && deployment.search === ""
+            && deployment.hash === "";
+
+          if (!valid) {
+            console.error("Cloudflare returned an unexpected deployment URL.");
+            process.exit(1);
+          }
+          NODE
 
       - name: Test the preview deployment
         id: preview-check
@@ -195,7 +219,31 @@ jobs:
         shell: bash
         env:
           DEPLOYMENT_URL: ${{ steps.production.outputs.deployment-url }}
-        run: test -n "$DEPLOYMENT_URL"
+        run: |
+          node <<'NODE'
+          let deployment;
+          try {
+            deployment = new URL(process.env.DEPLOYMENT_URL);
+          } catch {
+            console.error("Cloudflare did not return a valid deployment URL.");
+            process.exit(1);
+          }
+
+          const projectDeployment = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.sdq-website\.pages\.dev$/;
+          const valid = deployment.protocol === "https:"
+            && projectDeployment.test(deployment.hostname)
+            && deployment.username === ""
+            && deployment.password === ""
+            && deployment.port === ""
+            && deployment.pathname === "/"
+            && deployment.search === ""
+            && deployment.hash === "";
+
+          if (!valid) {
+            console.error("Cloudflare returned an unexpected deployment URL.");
+            process.exit(1);
+          }
+          NODE
 
       - name: Test the production deployment
         id: production-check

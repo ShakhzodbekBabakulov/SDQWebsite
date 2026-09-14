@@ -3,11 +3,12 @@ import { defineConfig, devices } from "@playwright/test";
 const useCloudflare = process.env.SDQ_USE_CLOUDFLARE === "1";
 const previewUrl = process.env.SDQ_PREVIEW_URL || (useCloudflare ? "http://127.0.0.1:3106" : "http://127.0.0.1:3000");
 const preview = new URL(previewUrl);
-const isLocalPreview = ["127.0.0.1", "localhost", "::1"].includes(preview.hostname);
+const isLocalPreview = ["127.0.0.1", "localhost", "[::1]"].includes(preview.hostname);
+const nativeIp = preview.hostname === "[::1]" ? "::1" : preview.hostname;
 
 const webServer = useCloudflare
   ? {
-      command: `npx wrangler pages dev out --ip ${preview.hostname} --port ${preview.port || "3106"}`,
+      command: `npx wrangler pages dev out --ip ${nativeIp} --port ${preview.port || "3106"}`,
       url: previewUrl,
       reuseExistingServer: false,
       timeout: 30_000,
