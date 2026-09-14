@@ -42,6 +42,9 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+To preview the production export, run `npm run build`, then `npm start`.
+Browser tests start this static preview automatically; build before running them.
+
 ## Checks
 
 ```bash

@@ -17,7 +17,7 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: `npm run start -- --port ${new URL(previewUrl).port || "3000"}`,
+    command: `npm run start -- --listen ${previewUrl}`,
     url: previewUrl,
     reuseExistingServer: true,
     timeout: 30_000,

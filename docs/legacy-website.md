@@ -18,9 +18,9 @@ homepage. Visible and mobile screen-reader links use the same locale mapping in
 ## Hosting setup status — 2026-09-14
 
 Created `legacy.sdq-sfb.com` in the existing Ahost cPanel account, sharing
-`/home/sdqsfbco/public_html`. Both authoritative nameservers (`dns1.ahost.uz`
-and `dns2.ahost.uz`) return `37.153.159.14`. Some recursive resolvers still
-cache the earlier missing-domain response. No website files or database were
+`/home/sdqsfbco/public_html`. The Ahost nameservers (`dns1.ahost.uz`
+and `dns2.ahost.uz`) return `37.153.159.14`, but that does not establish the
+record in the Cloudflare DNS zone now documented on main. No website files or database were
 moved or copied. The existing `test.sdq-sfb.com` is not used.
 
 Scoped the existing `.htaccess` `/index.php` redirect to exclude the legacy
@@ -51,8 +51,11 @@ fails; no certificate-validation bypass was used.
    The read-only UAPI `SSL get_autossl_renewal_status` call also returned status 0:
    `You do not have the feature «sslinstall».` Certificate management is blocked
    by the hosting plan, not by the local website code.
-2. When the main domain moves to Cloudflare, preserve the legacy DNS record and
-   the current mail records. The new homepage has not been published by this task.
+2. Main now documents the Cloudflare Pages launch and Cloudflare DNS. Verify
+   `legacy.sdq-sfb.com` has an A record pointing to `37.153.159.14` in the active
+   DNS zone, and preserve the current mail records. This task has not deployed
+   these contact-link changes. Ahost's DNS record alone is insufficient after
+   the nameserver change.
 3. Once HTTPS works, check Joomla's live-site, cookie-domain and HTTPS settings,
    redirects, canonical/language URLs and hard-coded internal links. The old
    site's navigation and language switcher must stay on `legacy.sdq-sfb.com`.
@@ -63,12 +66,14 @@ fails; no certificate-validation bypass was used.
    the administrator login. Verify forms with the owner before sending a real
    enquiry. Browser tests in this repository intercept the destination and do
    not prove that the Joomla backend is configured or that email is delivered.
-5. Only publish the new homepage after the legacy destination passes these checks.
+5. Only publish these contact-link changes after the legacy destination passes these checks.
 
 ## Local verification
 
 While the legacy certificate is pending, the local development preview can open
-the existing live Joomla site. In PowerShell:
+the existing Joomla site if the main hostname still reaches Ahost locally.
+This temporary address stops being a Joomla preview once local DNS reaches the
+new Cloudflare homepage. In PowerShell:
 
 ```powershell
 $env:NEXT_PUBLIC_SDQ_PREVIEW_LEGACY_ORIGIN = "https://sdq-sfb.com"
