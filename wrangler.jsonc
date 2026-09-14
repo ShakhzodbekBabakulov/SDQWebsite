@@ -1,0 +1,7 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sdq-website",
+  "pages_build_output_dir": "out",
+  "compatibility_date": "2026-09-14",
+  "r2_buckets": [{ "binding": "VIDEOS", "bucket_name": "sdq-website-media" }]
+}

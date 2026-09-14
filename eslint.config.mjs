@@ -7,8 +7,10 @@ export default defineConfig([
   ...nextTypeScript,
   globalIgnores([
     ".next/**",
+    ".wrangler/**",
     ".gstack/**",
     "out/**",
+    "public/more/**", // Preserved third-party assets from the public website.
     "playwright-report/**",
     "test-results/**",
     "next-env.d.ts",

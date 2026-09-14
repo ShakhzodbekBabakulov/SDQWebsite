@@ -42,6 +42,9 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+To preview the production export, run `npm run build`, then `npm start`.
+Browser tests start this static preview automatically; build before running them.
+
 ## Checks
 
 ```bash
@@ -59,14 +62,15 @@ npx playwright install
 
 ## Deploy
 
-The site is published to Cloudflare Pages as a static export. The Pages project is `sdq-website`; it is not connected to GitHub, so pushing to `main` does not publish. To publish the current checkout:
+The pages are published to Cloudflare Pages as a static export. The four active movie files are served at their existing `/video/` URLs by a Pages Function backed by Cloudflare R2, which supports the partial downloads needed for seeking. The Pages project is `sdq-website`; it is not connected to GitHub, so pushing to `main` does not publish. To publish the current checkout:
 
 ```bash
 npm run build
-npx wrangler@latest pages deploy out --project-name sdq-website --branch main
+npm run upload:videos -- --remote
+npx wrangler pages deploy out --branch main
 ```
 
-Run the deploy command from a directory outside this project if the Cloudflare CLI tries to reconfigure the build. The deploy uses the Cloudflare login stored by `wrangler login`. Every deploy also gets a permanent preview address of the form `https://<id>.sdq-website.pages.dev`, and the latest one is always at `https://sdq-website.pages.dev`.
+Run these commands from the project root so Wrangler discovers `wrangler.jsonc` and `functions/`. The pinned CLI uses the Cloudflare login stored by `wrangler login`. Uploading first ensures every movie referenced by the deployment exists in the private `sdq-website-media` bucket. Every deploy also gets a permanent preview address of the form `https://<id>.sdq-website.pages.dev`, and the latest one is always at `https://sdq-website.pages.dev`.
 
 DNS for `sdq-sfb.com` is managed in Cloudflare. The bare domain and `www` point at the Pages project; the mail records point directly at the previous hosting server so email keeps working.
 
@@ -87,6 +91,7 @@ docs/                            Verification records and upcoming work
 - [Roadmap](docs/work/roadmap_260912.md) — the one live list of unfinished work
 - [Browser verification](docs/verification/browser.md) — automated and manual browser coverage
 - [Media verification](docs/verification/media.md) — source and exported video details
+- [Existing website integration](docs/legacy-website.md) — public company pages at `/more/` and verification
 
 ## Current status
 

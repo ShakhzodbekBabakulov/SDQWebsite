@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { FPS, INPUT_IDLE_MS } from "../../src/components/train-story/timeline.ts";
 
 const previewUrl = process.env.SDQ_PREVIEW_URL || "http://127.0.0.1:3000";
 
@@ -956,10 +957,10 @@ test("scene two preserves the selected language and supports all four translatio
 
   await chooseLanguage(page, "RU");
   await page.mouse.move(640, 360);
-  for (let signal = 0; signal < 24; signal += 1) {
-    await page.mouse.wheel(0, 80);
-    await page.waitForTimeout(8);
-  }
+  // This case verifies translations. Separate awaited wheel calls can span the
+  // gesture lock on slower runners and accidentally advance another chapter.
+  // Continuous-wheel behavior is covered by the dedicated long-gesture test.
+  await page.mouse.wheel(0, 160);
   await waitForVisibleChapterFrame(page, 228, 258);
 
   const translations = [
@@ -1139,7 +1140,9 @@ test("scene six presents the approved contact actions in the film's right side",
     await expect(page.getByRole("heading", { name: item.headline })).toBeVisible();
     await expect(page.getByRole("link", { name: item.action })).toHaveAttribute(
       "href",
-      "https://sdq-sfb.com/",
+      item.button === "EN"
+        ? "/more/en/"
+        : "/more/",
     );
   }
 
@@ -1196,10 +1199,23 @@ test("desktop film stays fixed and one long gesture advances one carriage", asyn
   await expect(page.locator("video")).toHaveCount(2);
   await waitForVisibleChapterFrame(page, 108, 132);
 
-  for (let signal = 0; signal < 24; signal += 1) {
-    await page.mouse.wheel(0, 80);
-    await page.waitForTimeout(8);
-  }
+  // Schedule the continuous burst inside the page: automation round trips on
+  // Windows can exceed the gesture idle timeout between individual wheel calls.
+  const burst = await page.evaluate(async () => {
+    const target = document.querySelector(".video-stage")!;
+    const times: number[] = [];
+    let prevented = true;
+    for (let signal = 0; signal < 24; signal += 1) {
+      const event = new WheelEvent("wheel", { deltaY: 80, bubbles: true, cancelable: true });
+      times.push(performance.now());
+      target.dispatchEvent(event);
+      prevented = prevented && event.defaultPrevented;
+      await new Promise((resolve) => setTimeout(resolve, 8));
+    }
+    return { prevented, maxGap: Math.max(...times.slice(1).map((time, i) => time - times[i])) };
+  });
+  expect(burst.maxGap).toBeLessThan(INPUT_IDLE_MS);
+  expect(burst.prevented).toBe(true);
 
   await expect(chapterAnnouncement(page)).toHaveText("Official 1C partner");
   await page.waitForTimeout(600);
@@ -1304,14 +1320,15 @@ test("reduced motion jumps to a paused centre frame", async ({ browser }) => {
   await expect(page.locator("video")).toHaveCount(2);
   await expect(page.locator(".opening-greeting")).toHaveCount(0);
   await waitForStageFrame(page, 120, 120);
+  // Native clocks can vary within a frame; reduced motion must hold the exact picture.
   await expect
     .poll(() =>
       page
         .locator("video")
         .first()
-        .evaluate((video) => (video as HTMLVideoElement).currentTime),
+        .evaluate((video, fps) => Math.round((video as HTMLVideoElement).currentTime * fps), FPS),
     )
-    .toBeCloseTo(5, 2);
+    .toBe(120);
 
   await page.mouse.wheel(0, 100);
   await expect(chapterAnnouncement(page)).toHaveText("Official 1C partner");
@@ -1321,9 +1338,9 @@ test("reduced motion jumps to a paused centre frame", async ({ browser }) => {
       page
         .locator("video")
         .first()
-        .evaluate((video) => (video as HTMLVideoElement).currentTime),
+        .evaluate((video, fps) => Math.round((video as HTMLVideoElement).currentTime * fps), FPS),
     )
-    .toBeCloseTo(10.125, 2);
+    .toBe(243);
   await expect.poll(
     () => page.locator("video").evaluateAll((videos) =>
       videos.every((video) => (video as HTMLVideoElement).paused),

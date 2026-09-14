@@ -38,7 +38,13 @@ export const CONTACT_PHONE_LABEL = "+998 55 588 90 00";
 export const CONTACT_PHONE_HREF = "tel:+998555889000";
 export const CONTACT_EMAIL = "info@sdq-sfb.com";
 export const CONTACT_EMAIL_HREF = `mailto:${CONTACT_EMAIL}`;
-export const CONTACT_HOMEPAGE = "https://sdq-sfb.com/";
+// Public company pages are served alongside the film on Cloudflare.
+export const CONTACT_HOMEPAGE = "/more/";
+
+export function contactHomepageForLocale(locale: Locale): string {
+  // The existing Joomla site has Russian and English pages, but no Uzbek pages.
+  return locale === "en" ? `${CONTACT_HOMEPAGE}en/` : CONTACT_HOMEPAGE;
+}
 
 export const captionsByChapter: Readonly<
   Partial<Record<number, Readonly<CaptionChapter>>>

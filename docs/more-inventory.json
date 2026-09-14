@@ -1,0 +1,299 @@
+{
+  "source": "Existing SDQ public website, recovered 2026-09-14",
+  "pages": [
+    {
+      "path": "/more/",
+      "title": "SDQ MANAGEMENT ADVISORY GROUP — 1С и Восстановление Бухгалтерского Учёта"
+    },
+    {
+      "path": "/more/en/",
+      "title": "SDQ MANAGEMENT ADVISORY GROUP - 1C and Accounting Recovery"
+    },
+    {
+      "path": "/more/o-kompanii/",
+      "title": "О компании"
+    },
+    {
+      "path": "/more/1s-produkty/",
+      "title": "1С: Продукты"
+    },
+    {
+      "path": "/more/uslugi/",
+      "title": "Услуги"
+    },
+    {
+      "path": "/more/1c-cloud/",
+      "title": "1C: Cloud"
+    },
+    {
+      "path": "/more/podderzhka/",
+      "title": "Поддержка"
+    },
+    {
+      "path": "/more/kontakty/",
+      "title": "Контакты"
+    },
+    {
+      "path": "/more/uslugi/vnedrenie-1s/",
+      "title": "Внедрение 1С"
+    },
+    {
+      "path": "/more/uslugi/obuchenie-personala/",
+      "title": "Обучение персонала"
+    },
+    {
+      "path": "/more/uslugi/vosstanovlenie-uchjota/",
+      "title": "Восстановление учёта"
+    },
+    {
+      "path": "/more/uslugi/analitika-i-otchjotnost/",
+      "title": "Аналитика и отчётность"
+    },
+    {
+      "path": "/more/uslugi/integratsiya-1s/",
+      "title": "Интеграция 1С"
+    },
+    {
+      "path": "/more/en/about/",
+      "title": "About"
+    },
+    {
+      "path": "/more/en/1c-products/",
+      "title": "1C: Products"
+    },
+    {
+      "path": "/more/en/services/",
+      "title": "Services"
+    },
+    {
+      "path": "/more/en/1c-cloud/",
+      "title": "1C: Cloud"
+    },
+    {
+      "path": "/more/en/support/",
+      "title": "Support"
+    },
+    {
+      "path": "/more/ru/",
+      "title": "SDQ MANAGEMENT ADVISORY GROUP — 1С и Восстановление Бухгалтерского Учёта"
+    },
+    {
+      "path": "/more/en/contacts/",
+      "title": "Contacts"
+    },
+    {
+      "path": "/more/en/services/implementation-of-1c/",
+      "title": "Implementation of 1C"
+    },
+    {
+      "path": "/more/en/services/personnel-training/",
+      "title": "Personnel training"
+    },
+    {
+      "path": "/more/en/services/account-restoration/",
+      "title": "Account restoration"
+    },
+    {
+      "path": "/more/en/services/analytics-and-reporting/",
+      "title": "Analytics and reporting"
+    },
+    {
+      "path": "/more/en/services/1c-integration/",
+      "title": "1C Integration"
+    },
+    {
+      "path": "/more/1s-produkty/1s-bukhgalteriya-8-dlya-uzbekistana/",
+      "title": "1С:Бухгалтерия 8 для Узбекистана"
+    },
+    {
+      "path": "/more/1s-produkty/1s-zarplata-i-upravlenie-personalom-8-dlya-uzbekistana/",
+      "title": "1С: Зарплата и Управление Персоналом 8 для Узбекистана"
+    },
+    {
+      "path": "/more/1s-produkty/1c-upravlenie-kompaniej-8-dlya-uzbekistana/",
+      "title": "1C: Управление компанией 8 для Узбекистана"
+    },
+    {
+      "path": "/more/1s-produkty/1s-dokumentooborot-8/",
+      "title": "1С: Документооборот 8"
+    },
+    {
+      "path": "/more/1s-produkty/1s-wms-logistika-upravlenie-skladom/",
+      "title": "1С: WMS Логистика. Управление складом"
+    },
+    {
+      "path": "/more/1s-produkty/1s-mdm/",
+      "title": "1С: МДМ"
+    },
+    {
+      "path": "/more/1s-produkty/1s-analitika/",
+      "title": "1С: Аналитика"
+    },
+    {
+      "path": "/more/1s-produkty/1s-shina/",
+      "title": "1С: Шина"
+    }
+  ],
+  "assets": [
+    "/more/components/com_sppagebuilder/assets/css/animate.min.css",
+    "/more/components/com_sppagebuilder/assets/css/dynamic-content.css",
+    "/more/components/com_sppagebuilder/assets/css/font-awesome-6.min.css",
+    "/more/components/com_sppagebuilder/assets/css/font-awesome-v4-shims.css",
+    "/more/components/com_sppagebuilder/assets/css/magnific-popup.css",
+    "/more/components/com_sppagebuilder/assets/css/sppagebuilder.css",
+    "/more/components/com_sppagebuilder/assets/js/addons/image.js",
+    "/more/components/com_sppagebuilder/assets/js/addons/text_block.js",
+    "/more/components/com_sppagebuilder/assets/js/common.js",
+    "/more/components/com_sppagebuilder/assets/js/dynamic-content.js",
+    "/more/components/com_sppagebuilder/assets/js/jquery.magnific-popup.min.js",
+    "/more/components/com_sppagebuilder/assets/js/jquery.parallax.js",
+    "/more/components/com_sppagebuilder/assets/js/sppagebuilder.js",
+    "/more/components/com_sppagebuilder/assets/webfonts/fa-brands-400-6.ttf",
+    "/more/components/com_sppagebuilder/assets/webfonts/fa-brands-400-6.woff2",
+    "/more/components/com_sppagebuilder/assets/webfonts/fa-regular-400-6.ttf",
+    "/more/components/com_sppagebuilder/assets/webfonts/fa-regular-400-6.woff2",
+    "/more/components/com_sppagebuilder/assets/webfonts/fa-solid-900-6.ttf",
+    "/more/components/com_sppagebuilder/assets/webfonts/fa-solid-900-6.woff2",
+    "/more/components/com_sppagebuilder/assets/webfonts/fa-v4compatibility.ttf",
+    "/more/components/com_sppagebuilder/assets/webfonts/fa-v4compatibility.woff2",
+    "/more/fonts/03d220d9b24c4a1300ec.ttf",
+    "/more/fonts/09d0a50adc1f27290dbe.ttf",
+    "/more/fonts/0bd123767dd96a3b3ff4.ttf",
+    "/more/fonts/1f14819ef6fe1f8f20c1.ttf",
+    "/more/fonts/1fb7c781d7e5ba95a72c.ttf",
+    "/more/fonts/20a3925ef99bd32e7d11.ttf",
+    "/more/fonts/2977970d977acc9987cc.ttf",
+    "/more/fonts/2e6261b652b099efa0aa.ttf",
+    "/more/fonts/33b2cce4c5933c4fcea6.ttf",
+    "/more/fonts/3d9ba3d6b760f270155e.ttf",
+    "/more/fonts/46bb6db67e53c88f43a0.ttf",
+    "/more/fonts/47acfc5a674967e552c8.ttf",
+    "/more/fonts/4b46362b85a671114cd3.ttf",
+    "/more/fonts/4ffb557f19ed99ba16f3.ttf",
+    "/more/fonts/5852d8bd7862fbc3bae3.ttf",
+    "/more/fonts/59860df5818a823a0877.ttf",
+    "/more/fonts/6006b23c1affa0067943.ttf",
+    "/more/fonts/64d8474698e70281ebc1.ttf",
+    "/more/fonts/683aca51216d590dbd03.ttf",
+    "/more/fonts/6becd3ee0f8f78cb5f93.ttf",
+    "/more/fonts/6d85e17a0da20cce3e64.ttf",
+    "/more/fonts/72bb85bdad4e45aa2124.ttf",
+    "/more/fonts/75066697aab6ae2de0c2.ttf",
+    "/more/fonts/77fe8113a46050ff1736.ttf",
+    "/more/fonts/91c8a14c9f9298df04c4.ttf",
+    "/more/fonts/91d70bf8c97d1bae2df6.ttf",
+    "/more/fonts/98fa0fae31135dae6945.ttf",
+    "/more/fonts/9bf757b77ef39002cfd8.ttf",
+    "/more/fonts/9e2231cb3a2b8ff7fcf7.ttf",
+    "/more/fonts/9e3fbc1ab7928fd6dfb9.ttf",
+    "/more/fonts/a8d9816f327954118140.ttf",
+    "/more/fonts/aa0cea753951e067bb46.ttf",
+    "/more/fonts/b4a40984712e7975247f.ttf",
+    "/more/fonts/ba08bcb8d7f79dff33d9.ttf",
+    "/more/fonts/e2e7c98a66258648736d.ttf",
+    "/more/fonts/eda903b1bd55724a0482.ttf",
+    "/more/fonts/ee0dda4432f534f156fa.ttf",
+    "/more/fonts/ee6f3e7ee5497f317543.ttf",
+    "/more/fonts/f30b13ea20096845ed2f.ttf",
+    "/more/fonts/f485c3fa25b683e39945.ttf",
+    "/more/fonts/f5bb723ea1bd66b154b4.ttf",
+    "/more/fonts/f614842e3fcd9e0de056.ttf",
+    "/more/fonts/fc701c70b984d20702a0.ttf",
+    "/more/fonts/inter-OFL.txt",
+    "/more/fonts/inter.css",
+    "/more/fonts/manrope-OFL.txt",
+    "/more/fonts/manrope.css",
+    "/more/fonts/montserrat-OFL.txt",
+    "/more/fonts/montserrat.css",
+    "/more/images/2026/04/19/ak.png",
+    "/more/images/2026/04/19/dtr.png",
+    "/more/images/2026/04/19/hhh.png",
+    "/more/images/2026/04/19/image_2026-04-19_18-16-26.png",
+    "/more/images/2026/04/19/mks.png",
+    "/more/images/2026/04/19/pfk.png",
+    "/more/images/2026/04/19/rsh.png",
+    "/more/images/2026/04/19/sp.png",
+    "/more/images/2026/04/21/logo--.png",
+    "/more/images/2026/04/22/sdq.png",
+    "/more/images/2026/05/18/1.png",
+    "/more/images/2026/05/18/2.png",
+    "/more/images/2026/05/18/3.png",
+    "/more/images/2026/05/18/4.png",
+    "/more/images/2026/05/18/5.png",
+    "/more/images/2026/05/18/6.png",
+    "/more/images/2026/05/18/sertificat.png",
+    "/more/images/2026/05/19/1.png",
+    "/more/images/2026/05/19/2.png",
+    "/more/images/2026/05/19/3.png",
+    "/more/images/2026/05/20/10.png",
+    "/more/images/2026/05/20/11.png",
+    "/more/images/2026/05/20/12.png",
+    "/more/images/2026/05/20/13.png",
+    "/more/images/2026/05/20/4-.png",
+    "/more/images/2026/05/20/5.png",
+    "/more/images/2026/05/20/6.png",
+    "/more/images/2026/05/20/7.png",
+    "/more/images/2026/05/20/8.png",
+    "/more/images/2026/05/20/9.png",
+    "/more/images/doc_2026-04-18_09-06-39-photoroom.png",
+    "/more/images/image_2026-04-17_13-49-03-photoroom.png",
+    "/more/media/com_rsform/css/frameworks/bootstrap3/bootstrap.min.css",
+    "/more/media/com_rsform/css/frameworks/bootstrap3/fonts/glyphicons-halflings-regular.ttf",
+    "/more/media/com_rsform/css/frameworks/bootstrap3/fonts/glyphicons-halflings-regular.woff",
+    "/more/media/com_rsform/css/frameworks/bootstrap3/fonts/glyphicons-halflings-regular.woff2",
+    "/more/media/com_rsform/css/front.min.css",
+    "/more/media/com_sppagebuilder/assets/iconfont/ico3mizkp/style.css",
+    "/more/media/com_sppagebuilder/assets/iconfont/icobpz9em/style.css",
+    "/more/media/com_sppagebuilder/assets/iconfont/icocsguuy/style.css",
+    "/more/media/com_sppagebuilder/assets/iconfont/icofkzuyd/style.css",
+    "/more/media/com_sppagebuilder/assets/iconfont/icofont/icofont.min.css",
+    "/more/media/com_sppagebuilder/assets/iconfont/icopftmdn/style.css",
+    "/more/media/com_sppagebuilder/assets/iconfont/icopnggmj/style.css",
+    "/more/media/com_sppagebuilder/assets/iconfont/icoqkmttf/style.css",
+    "/more/media/com_sppagebuilder/assets/iconfont/icorgirmp/style.css",
+    "/more/media/com_sppagebuilder/assets/iconfont/icowkxxvb/style.css",
+    "/more/media/com_sppagebuilder/assets/iconfont/icoyfocay/style.css",
+    "/more/media/legacy/js/jquery-noconflict.min.js",
+    "/more/media/mod_languages/css/template.min.css",
+    "/more/media/mod_languages/images/en_gb.gif",
+    "/more/media/mod_languages/images/ru_ru.gif",
+    "/more/media/mod_menu/js/menu.min.js",
+    "/more/media/system/js/core.min.js",
+    "/more/media/system/js/messages.min.js",
+    "/more/media/system/js/showon.min.js",
+    "/more/media/vendor/bootstrap/js/alert.min.js",
+    "/more/media/vendor/bootstrap/js/button.min.js",
+    "/more/media/vendor/bootstrap/js/carousel.min.js",
+    "/more/media/vendor/bootstrap/js/collapse.min.js",
+    "/more/media/vendor/bootstrap/js/dom.min.js",
+    "/more/media/vendor/bootstrap/js/dropdown.min.js",
+    "/more/media/vendor/bootstrap/js/modal.min.js",
+    "/more/media/vendor/bootstrap/js/offcanvas.min.js",
+    "/more/media/vendor/bootstrap/js/popover.min.js",
+    "/more/media/vendor/bootstrap/js/popper.min.js",
+    "/more/media/vendor/bootstrap/js/scrollspy.min.js",
+    "/more/media/vendor/bootstrap/js/tab.min.js",
+    "/more/media/vendor/bootstrap/js/toast.min.js",
+    "/more/media/vendor/joomla-custom-elements/css/joomla-alert.min.css",
+    "/more/media/vendor/jquery/js/jquery.min.js",
+    "/more/plugins/system/helixultimate/assets/css/system-j4.min.css",
+    "/more/templates/politicas/css/bootstrap.min.css",
+    "/more/templates/politicas/css/custom.css",
+    "/more/templates/politicas/css/fa-v4-shims.css",
+    "/more/templates/politicas/css/font-awesome.min.css",
+    "/more/templates/politicas/css/presets/preset1.css",
+    "/more/templates/politicas/css/template.css",
+    "/more/templates/politicas/fonts/fa-brands-400.ttf",
+    "/more/templates/politicas/fonts/fa-brands-400.woff",
+    "/more/templates/politicas/fonts/fa-brands-400.woff2",
+    "/more/templates/politicas/fonts/fa-regular-400.ttf",
+    "/more/templates/politicas/fonts/fa-regular-400.woff",
+    "/more/templates/politicas/fonts/fa-regular-400.woff2",
+    "/more/templates/politicas/fonts/fa-solid-900.ttf",
+    "/more/templates/politicas/fonts/fa-solid-900.woff",
+    "/more/templates/politicas/fonts/fa-solid-900.woff2",
+    "/more/templates/politicas/images/body-grid.png",
+    "/more/templates/politicas/images/slider-control-bottom.svg",
+    "/more/templates/politicas/js/main.js"
+  ]
+}

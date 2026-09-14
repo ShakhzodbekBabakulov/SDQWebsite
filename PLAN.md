@@ -1,4 +1,48 @@
-# SDQ mobile cinematic experience
+# SDQ /more/ public website migration — approved 2026-09-14
+
+The user approved implementing the complete revised PR #5 plan, including review,
+merge, Cloudflare preview and production publication. The animated homepage stays
+at `/`; Russian and both Uzbek contact actions open `/more/`, English `/more/en/`.
+All old-site internal navigation stays under `/more/` in the same tab. Public
+content, appearance, images, downloads and language navigation are included.
+Joomla administration and enquiry processing are excluded; replace forms with
+clearly labelled phone/email links. No origin hostname is needed at runtime.
+
+## Implementation steps
+
+1. Recover and inventory public pages and assets from the existing host; do not
+   publish private backups, configuration, database exports or incomplete content.
+2. Add the static pages/assets under `public/more/` and a reproducible import
+   script under `scripts/`. Keep old-site styling scoped to separate HTML pages.
+3. Update `src/components/train-story/captions.ts` and destination tests to use
+   same-origin paths; remove the development legacy-origin override.
+4. Update `tests/legacy-site.test.mjs`, `tests/e2e/legacy-navigation.spec.ts`,
+   `tests/e2e/train-story.spec.ts`, README and `docs/legacy-website.md`.
+5. Run unit tests, lint, TypeScript, build, full Chromium and focused Firefox/
+   WebKit checks. Crawl pages/assets and check mobile menus, language switching,
+   keyboard navigation, contact links and direct nested-page refreshes.
+6. Review the entire final PR and dependencies. Publish a Cloudflare preview and
+   verify it. Merge the exact tested revision, build merged main, publish to the
+   existing Pages project, then verify live URLs. Restore the prior deployment
+   if live verification fails. Pushing/merging alone does not publish this site.
+
+## Progress
+
+- Checked out PR #5 at 3cc36c3 in `/private/tmp/sdq-more`.
+- No recovery archive found in local project/download folders. Public Joomla
+  homepage is accessible via its known origin with validated HTTPS (HTTP 200).
+- Read installed Next.js static-export/public-folder documentation.
+- Recovered 33 pages and 160 assets, including local fonts/licenses. Removed
+  enquiry forms, keepalive, CSRF values and obsolete font references.
+- Application changes, importer, inventory and tests implemented and reviewed.
+- 34 unit tests; lint, TypeScript, build; 61/61 full Chromium tests; 30/30 focused
+  Chromium/Firefox/WebKit navigation checks pass. Screenshots inspected.
+- Next: verify hosted preview, merge the reviewed revision, publish merged main,
+  and verify production. Prior deployment recorded in the hosting guide.
+
+---
+
+# Previous completed plan: SDQ mobile cinematic experience
 
 Approved 2026-09-13. Reference: Babakulov.live commit `c0fecf000727475d9e658b19054433219e98ee0d`.
 Work locally. No deployment, branding changes, dependencies, desktop redesign or film replacement.
@@ -102,3 +146,20 @@ Next: user checks the fixed local preview on their physical iPhone before shippi
 - Native Safari Simulator production verification: first rotation capture retains the train, with animation sampling resuming after 123ms instead of the reproducible multi-second baseline pause. Final shared-height build inspected in both landscape directions. Captures: /private/tmp/sdq-rotation-built-fix.png, /private/tmp/sdq-rotation-final-opposite.png, /private/tmp/sdq-rotation-final-left.png; repeated baseline: /private/tmp/sdq-rotation-baseline-repeat.png.
 - The corrected page has been opened on the physical iPhone, and the user was asked to repeat rotation. At completion of local checks, that second rotation had not yet arrived. Physical corrected-Safari confirmation and physical Chrome rotation remain pending; the simulator and desktop browser engines do not establish those results. No deployment, push, or merge.
 - Acceptance update: the user subsequently confirmed the corrected Safari rotation works on the physical iPhone, then confirmed all works fine and authorized commit, push, and merge. This is user-reported acceptance; no additional automated physical-Chrome result is claimed.
+
+## Approved video-delivery extension — 2026-09-14
+
+The user approved fixing the inherited Cloudflare Pages video-range limitation
+before completing merge/publication. Keep all public URLs and player code intact.
+Use a dedicated Cloudflare R2 bucket for the four active MP4 files and a native
+Pages Function on their existing /video/ paths. Use immutable content-hash storage
+keys, standard HTTP range/conditional responses and R2's native ranged reads.
+
+Files: `functions/video/[file].js`, `cloudflare/video-manifest.json`,
+`scripts/prepare-video.mjs`, `scripts/upload-video.mjs`, `wrangler.jsonc`,
+`public/_routes.json`, package scripts, HTTP range tests and deployment docs.
+Build generates the manifest from the existing MEDIA mapping. Upload verified
+files before preview/production deployment; preserve the existing Pages project.
+Verify exact first/middle/suffix bytes, HEAD, 416, conditional requests, browser
+seeking/reduced-motion navigation, and the complete hosted /more/ crawl. Merge
+only the reviewed tested revision after preview checks pass.
