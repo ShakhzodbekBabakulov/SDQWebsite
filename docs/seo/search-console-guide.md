@@ -8,7 +8,7 @@ Google Search Console accepts the published URL, not a local file upload. Keep t
 
 ## Before submission
 
-1. Reconcile overlapping deployment PR #6 and record the current production deployment ID for rollback. Build the reviewed revision, retaining any existing Google verification token.
+1. Record the current production deployment ID for rollback. Build the reviewed revision, retaining any existing Google verification token. The merged deployment workflow from PR #6 is incorporated in this branch.
 2. Deploy to the existing `sdq-website` Pages project with its Functions directory and `wrangler.jsonc`. Preserve the R2 binding and old video objects. Verify every video manifest object exists before publishing.
 3. Confirm `sdq-sfb.com` serves this build over HTTPS. Public DNS currently points to Cloudflare, while this machine's default resolver still returns the former origin. Do not declare the new release live based only on a working `pages.dev` preview. Preserve mail/MX records.
 4. Open the sitemap URL on the branded domain. It must return HTTP 200 with the 35 expected URLs. Run the live crawl, redirects and video-range checks. Verify Cloudflare does not challenge or block Googlebot, Bingbot or OAI-SearchBot; retain existing model-training preferences.
@@ -33,4 +33,4 @@ Priority AI URLs:
 
 ## Current status
 
-The file and implementation are prepared locally. This task has **not deployed or submitted** them. Deployment access, domain routing, the overlapping PR and remaining WebKit validation are recorded in [validation.md](validation.md). Record ownership verification and accepted submission only after they happen.
+The file and implementation are prepared for review. This task has **not deployed or submitted** them. Deployment access, domain routing and remaining WebKit validation are recorded in [validation.md](validation.md). Record ownership verification and accepted submission only after they happen.

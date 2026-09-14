@@ -1,6 +1,6 @@
 # SDQ rebuild: design, validation and release report
 
-Date: 14 September 2026. Worktree: `D:\Codex\worktrees\a1e8\SDQWebsite`. Branch: `codex/update-site-for-google-search`. Base: merged main `8b499d0`, including PR #5 and its R2 video-range fix.
+Date: 14 September 2026. Worktree: `D:\Codex\worktrees\a1e8\SDQWebsite`. Branch: `codex/update-site-for-google-search`. Base: merged main `6b8a42c`, including PR #5's R2 video-range fix and PR #6's deployment workflow.
 
 ## Completion status
 
@@ -9,7 +9,7 @@ Date: 14 September 2026. Worktree: `D:\Codex\worktrees\a1e8\SDQWebsite`. Branch:
 | Next.js company rebuild | Implemented locally: 32 migrated pages plus two AI integration pages |
 | Design repairs | Implemented and browser-checked; checklist below |
 | Technical SEO and AI search preparation | Implemented; 35-page static sitemap validated |
-| Cloudflare deployment | **Not performed by this task**; sign-in is still needed and draft PR #6 overlaps release configuration |
+| Cloudflare deployment | **Not performed by this task**; PR #6's merged workflow is incorporated; production credentials and release checks remain required |
 | Branded domain | Public DNS and direct Cloudflare HTTPS checks work; this machine's default resolver remains stale |
 | Search Console | **Not verified or submitted by this task**; no Google verification token or accepted submission recorded |
 | Full train regression | Run, with Windows WebKit limitations still open; not an all-green release claim |
@@ -47,6 +47,7 @@ Baseline: every original canonical company page captured at 390px and 1440px bef
 
 ## Validation results
 
+- PR preparation recheck on source commit `d4da436` after merging main: **all 69 Chromium browser tests pass** against a fresh `wrangler pages dev` process with local R2 (3.8 minutes). This includes the full company matrix, train regression, mobile recovery, redirects and exact video ranges. Unit tests (41), lint, TypeScript, production build and the 35-page export audit also pass. Subsequent changes only update these review documents and remove trailing whitespace from the historical robots comments.
 - **41 unit tests pass.** ESLint, TypeScript and production static export pass.
 - `python scripts/verify-export.py` passes: **35 initial HTML documents**, 35 unique titles/descriptions, canonical/social URLs, language labels and reciprocal alternates, structured data, internal targets, sitemap XML and **56 rendering assets**, including CSS font dependencies.
 - Company crawl passes with JavaScript disabled. No missing requested assets, external rendering dependencies, empty headings, skipped heading levels or stale form prompts were found.
@@ -63,7 +64,7 @@ The default Windows resolver returned `37.153.159.14` and `dns1.ahost.uz` / `dns
 
 Cloudflare CLI authentication was absent. The default OAuth flow was rejected by automatic approval review because it requested unrelated write scopes. A narrower flow using Pages write plus account/user/domain read access was accepted and opened; it timed out awaiting user sign-in. No deployment or DNS mutation occurred.
 
-The session conflict checker reported `gh_ok: true`, no warnings, and a blocking overlap with draft [PR #6](https://github.com/ShakhzodbekBabakulov/SDQWebsite/pull/6), “Publish verified website releases automatically from GitHub”. It overlaps README, deployment documentation and Playwright configuration. Other task worktrees were inspected read-only and were clean. This task did not merge, overwrite or publish the overlapping work. The [session-conflict-check skill](C:/Users/ASUS/.codex/skills/session-conflict-check/SKILL.md) states: “Older overlapping PRs go first; unsubmitted local overlap needs attention.” Reconcile that PR before release, preserving its workflow and current deployment checkpoint.
+At PR preparation, [PR #6](https://github.com/ShakhzodbekBabakulov/SDQWebsite/pull/6), “Publish verified website releases automatically from GitHub”, was confirmed merged. Fetched main `6b8a42c` was merged into this task's feature branch. The Playwright configuration conflict was resolved by retaining the workflow's local Cloudflare runtime mode and this task's support for an already-running explicit preview URL. Hosted checks now run `company-content.spec.ts` in place of the removed import test, and CI validates TypeScript and the exported sitemap. The other registered worktrees were inspected read-only and were clean; their branch-relative overlap was not uncommitted work and neither checkout was changed. No production deployment was performed.
 
 ## Search Console and remaining release steps
 
