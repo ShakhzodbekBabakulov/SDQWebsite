@@ -49,11 +49,18 @@ WebKit. The content crawl visits every inventoried page and asset, checks intern
 links and images, and fails on browser errors or missing same-origin resources.
 The navigation tests load actual company pages; no destination is intercepted.
 
-Publish and verify a Cloudflare preview before merging PR #5. Merge the reviewed
-revision, build merged main, and deploy `out/` to the existing Pages project.
-GitHub pushes and merges do not publish automatically. Verify the live homepage,
-`/more/`, `/more/en/`, nested routes, menus, language switching and contact links.
-If live checks fail, roll back to the recorded prior Cloudflare deployment.
+The GitHub Actions workflow checks PRs without publishing. A push or merge to
+`main` runs the checks, uploads the referenced videos, publishes and verifies a
+preview, then publishes the same tested artifact to the existing Pages project.
+The artifact includes both `out/` and the generated video manifest. It runs the
+company-page crawl, navigation and exact video-byte checks again on production.
+Credentials and manual recovery are described in README's deployment section.
+
+Inspect the GitHub run for the source commit, deployment links and failed-test
+traces. Also verify the live homepage, `/more/`, `/more/en/`, nested routes,
+menus, language switching and contact links when accepting a release. A failed
+post-publication check does not automatically roll back production; restore
+the last verified deployment from Cloudflare if the live site is broken.
 
 ## Rollback checkpoint
 
@@ -101,8 +108,11 @@ workaround; it omits the Function. Use `--branch pr-5-more` for preview and
 `--branch main` only for the tested merged revision.
 
 For native local verification: run `npm run upload:videos -- --local`, then
-`npx wrangler pages dev out --ip 127.0.0.1 --port 3106`. Point browser tests at
-`SDQ_PREVIEW_URL=http://127.0.0.1:3106`. Ordinary `npm start` remains a convenient
-static-only preview; only Wrangler and hosted previews exercise the R2 Function.
+run `SDQ_USE_CLOUDFLARE=1 SDQ_PREVIEW_URL=http://127.0.0.1:3106 npm run test:e2e
+-- --project=chromium`. Playwright starts the native Cloudflare server and waits
+for it to become ready. The workflow uses this mode without any production
+credentials. For hosted checks, set `SDQ_PREVIEW_URL` to the deployment URL and
+omit `SDQ_USE_CLOUDFLARE`. Ordinary `npm start` remains a convenient static-only
+preview; only Wrangler and hosted previews exercise the R2 Function.
 The video-delivery browser tests compare actual first/middle/suffix bytes against
 the source movies and check HEAD, conditional requests and unsatisfiable ranges.
