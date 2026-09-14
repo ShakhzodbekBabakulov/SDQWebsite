@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "include": [
+    "/video/sdq-train-desktop-reverse.mp4",
+    "/video/sdq-train-desktop.mp4",
+    "/video/sdq-train-mobile-wide-reverse.mp4",
+    "/video/sdq-train-mobile-wide.mp4"
+  ],
+  "exclude": []
+}

@@ -72,3 +72,37 @@ dashboard if post-publication checks fail; it contains the previous homepage.
 - Desktop, phone layout and opened mobile menu inspected in screenshots.
 - Independent migration and testing reviews: no merge-blocking findings.
 - Physical-device checks were not rerun for this migration.
+
+## Native video delivery
+
+Hosted verification exposed an inherited Pages limitation: a video range request
+returned the entire movie with status 200, preventing reduced-motion seeks on
+both the previous deployment and the initial /more/ preview. The user approved
+fixing this before release. Pages' static asset serving behavior is documented at
+https://developers.cloudflare.com/pages/configuration/serving-pages/.
+
+`functions/video/[file].js` delegates the four active MP4 URLs to the handler in
+`cloudflare/video-handler.js`. It streams the requested range from the private
+R2 bucket `sdq-website-media` using native R2 ranged reads, with standard 206/416,
+HEAD, ETag and If-Range behavior. It does not buffer entire movies in the Worker.
+`public/_routes.json` restricts Function invocation to those exact movie paths;
+pages, posters and other assets keep ordinary static serving.
+
+`npm run build` regenerates the content-hash manifest and route list from the
+player's existing MEDIA mapping. `npm run upload:videos -- --remote` verifies all
+source hashes and uploads immutable keys before deployment. Preserve old objects
+so older deployments remain reproducible. The four public movie URLs do not
+change, and no extra public hostname or cross-origin video access is required.
+
+Deploy from the project root using the pinned `npx wrangler pages deploy out
+--branch <branch>` command, so both the Functions directory and R2 binding in
+`wrangler.jsonc` are included. Do not use the earlier outside-project deployment
+workaround; it omits the Function. Use `--branch pr-5-more` for preview and
+`--branch main` only for the tested merged revision.
+
+For native local verification: run `npm run upload:videos -- --local`, then
+`npx wrangler pages dev out --ip 127.0.0.1 --port 3106`. Point browser tests at
+`SDQ_PREVIEW_URL=http://127.0.0.1:3106`. Ordinary `npm start` remains a convenient
+static-only preview; only Wrangler and hosted previews exercise the R2 Function.
+The video-delivery browser tests compare actual first/middle/suffix bytes against
+the source movies and check HEAD, conditional requests and unsatisfiable ranges.

@@ -146,3 +146,20 @@ Next: user checks the fixed local preview on their physical iPhone before shippi
 - Native Safari Simulator production verification: first rotation capture retains the train, with animation sampling resuming after 123ms instead of the reproducible multi-second baseline pause. Final shared-height build inspected in both landscape directions. Captures: /private/tmp/sdq-rotation-built-fix.png, /private/tmp/sdq-rotation-final-opposite.png, /private/tmp/sdq-rotation-final-left.png; repeated baseline: /private/tmp/sdq-rotation-baseline-repeat.png.
 - The corrected page has been opened on the physical iPhone, and the user was asked to repeat rotation. At completion of local checks, that second rotation had not yet arrived. Physical corrected-Safari confirmation and physical Chrome rotation remain pending; the simulator and desktop browser engines do not establish those results. No deployment, push, or merge.
 - Acceptance update: the user subsequently confirmed the corrected Safari rotation works on the physical iPhone, then confirmed all works fine and authorized commit, push, and merge. This is user-reported acceptance; no additional automated physical-Chrome result is claimed.
+
+## Approved video-delivery extension — 2026-09-14
+
+The user approved fixing the inherited Cloudflare Pages video-range limitation
+before completing merge/publication. Keep all public URLs and player code intact.
+Use a dedicated Cloudflare R2 bucket for the four active MP4 files and a native
+Pages Function on their existing /video/ paths. Use immutable content-hash storage
+keys, standard HTTP range/conditional responses and R2's native ranged reads.
+
+Files: `functions/video/[file].js`, `cloudflare/video-manifest.json`,
+`scripts/prepare-video.mjs`, `scripts/upload-video.mjs`, `wrangler.jsonc`,
+`public/_routes.json`, package scripts, HTTP range tests and deployment docs.
+Build generates the manifest from the existing MEDIA mapping. Upload verified
+files before preview/production deployment; preserve the existing Pages project.
+Verify exact first/middle/suffix bytes, HEAD, 416, conditional requests, browser
+seeking/reduced-motion navigation, and the complete hosted /more/ crawl. Merge
+only the reviewed tested revision after preview checks pass.
