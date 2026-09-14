@@ -6,3 +6,8 @@ out/
 .DS_Store
 playwright-report/
 test-results/
+
+# Cloudflare CLI leftovers
+.dev.vars
+.open-next/
+.wrangler/

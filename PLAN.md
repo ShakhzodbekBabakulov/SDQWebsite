@@ -63,7 +63,7 @@ Use real decoding; recovery tests must not manually repair the player. Test actu
 
 ## What to do next
 
-Review the local mobile preview and complete remaining physical-device acceptance before any deployment. No deployment or merge was performed.
+The site went live at https://sdq-sfb.com on 2026-09-14 via Cloudflare Pages (see README "Deploy"). Remaining: physical-device acceptance items listed above, now checked against the live address.
 
 ## Approved landscape fit correction — 2026-09-14
 

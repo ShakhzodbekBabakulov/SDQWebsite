@@ -1,6 +1,6 @@
 # SDQ Website roadmap
 
-**Created** 2026-09-12 · **Last updated** 2026-09-12
+**Created** 2026-09-12 · **Last updated** 2026-09-14
 
 ## What this is
 
@@ -20,17 +20,17 @@ The phone foundation already exists. A real iPhone and Android walkthrough is st
 
 **Action:** founder + Codex, next session
 
-### SDQ-2 · Obtain Cloudflare and domain access
+### SDQ-2 · Obtain Cloudflare and domain access — closed 2026-09-14
 
-The `sdq-sfb.com` domain currently uses aHost nameservers. Preserve every existing DNS and email record, then grant the minimum Cloudflare access and approve the private GitHub repository connection.
+`sdq-sfb.com` is on Cloudflare nameservers. Deployment uses the founder's existing `wrangler login`. DNS edits were made with a temporary "Edit zone DNS" token that the founder should revoke in Cloudflare (My Profile, API Tokens). All previous hosting and email records were preserved; the mail record now points directly at the previous server (`37.153.159.14`) and the MX record at `mail.sdq-sfb.com`.
 
-**Action:** founder grants access before hosting work begins
+**Action:** none
 
-### SDQ-3 · Publish through Cloudflare Pages
+### SDQ-3 · Publish through Cloudflare Pages — closed 2026-09-14
 
-Prepare the site as a static export, connect `main`, test the Cloudflare preview, and then attach `sdq-sfb.com`. Confirm HTTPS, desktop, mobile, and rollback before replacing the current site.
+Static export enabled in commit `b6a0712`. Pages project `sdq-website` created by direct upload (not GitHub-connected, see README "Deploy"). `sdq-sfb.com` and `www.sdq-sfb.com` attached with HTTPS active. Verified: live page title, video and script files served, no console errors. Rollback: redeploy any earlier `<id>.sdq-website.pages.dev` build from the Cloudflare dashboard.
 
-**Action:** start after SDQ-2
+**Action:** none. Optional later: connect the Pages project to GitHub so pushes publish automatically.
 
 ### SDQ-4 · Enable website statistics
 
