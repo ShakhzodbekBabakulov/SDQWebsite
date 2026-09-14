@@ -9,6 +9,7 @@ export default defineConfig([
     ".next/**",
     ".gstack/**",
     "out/**",
+    "public/more/**", // Preserved third-party assets from the public website.
     "playwright-report/**",
     "test-results/**",
     "next-env.d.ts",

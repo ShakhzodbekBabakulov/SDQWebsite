@@ -38,17 +38,8 @@ export const CONTACT_PHONE_LABEL = "+998 55 588 90 00";
 export const CONTACT_PHONE_HREF = "tel:+998555889000";
 export const CONTACT_EMAIL = "info@sdq-sfb.com";
 export const CONTACT_EMAIL_HREF = `mailto:${CONTACT_EMAIL}`;
-// Joomla stays on its PHP host when the animated homepage moves to Cloudflare.
-// Do not point this at sdq-sfb.com: that would return visitors to the film.
-// An explicit development-only override lets the local film open the existing
-// live Joomla site while its new hostname awaits a certificate. Production
-// builds always keep the separate hostname, even if this variable is set.
-const previewLegacyOrigin = process.env.NODE_ENV === "development"
-  ? process.env.NEXT_PUBLIC_SDQ_PREVIEW_LEGACY_ORIGIN
-  : undefined;
-export const CONTACT_HOMEPAGE = previewLegacyOrigin
-  ? new URL("/", previewLegacyOrigin).href
-  : "https://legacy.sdq-sfb.com/";
+// Public company pages are served alongside the film on Cloudflare.
+export const CONTACT_HOMEPAGE = "/more/";
 
 export function contactHomepageForLocale(locale: Locale): string {
   // The existing Joomla site has Russian and English pages, but no Uzbek pages.

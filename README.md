@@ -90,7 +90,7 @@ docs/                            Verification records and upcoming work
 - [Roadmap](docs/work/roadmap_260912.md) — the one live list of unfinished work
 - [Browser verification](docs/verification/browser.md) — automated and manual browser coverage
 - [Media verification](docs/verification/media.md) — source and exported video details
-- [Existing website integration](docs/legacy-website.md) — contact links and Joomla hosting setup
+- [Existing website integration](docs/legacy-website.md) — public company pages at `/more/` and verification
 
 ## Current status
 
