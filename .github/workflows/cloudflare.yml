@@ -1,0 +1,232 @@
+name: Check and publish
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Test the website
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the source commit
+        uses: actions/checkout@v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Run lint checks
+        run: npm run lint
+
+      - name: Build the website
+        run: npm run build
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Seed local video storage
+        run: npm run upload:videos -- --local
+
+      - name: Test with the Cloudflare runtime
+        run: npm run test:e2e -- --project=chromium
+        env:
+          SDQ_USE_CLOUDFLARE: "1"
+          SDQ_PREVIEW_URL: http://127.0.0.1:3106
+
+      - name: Save the tested build
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: sdq-build-${{ github.sha }}
+          path: |
+            out/
+            cloudflare/video-manifest.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Save browser failure details
+        if: failure()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: browser-failures-checks-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  deploy:
+    name: Preview, verify, and publish
+    needs: checks
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      deployments: write
+    concurrency:
+      group: sdq-production-deployment
+      cancel-in-progress: false
+    steps:
+      - name: Check out the tested source commit
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download the tested build
+        uses: actions/download-artifact@v8.0.1
+        with:
+          name: sdq-build-${{ github.sha }}
+          path: .
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Check main before publishing the preview
+        id: freshness
+        shell: bash
+        run: |
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          latest_main="$(git rev-parse origin/main)"
+          if [[ "$GITHUB_SHA" == "$latest_main" ]]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Production deployment skipped"
+              echo
+              echo "Commit \`$GITHUB_SHA\` is older than current main \`$latest_main\`."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload videos to production storage
+        if: steps.freshness.outputs.current == 'true'
+        run: npm run upload:videos -- --remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Publish the preview
+        id: preview
+        if: steps.freshness.outputs.current == 'true'
+        uses: cloudflare/wrangler-action@v4.0.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          wranglerVersion: "4.131.2"
+          workingDirectory: .
+          command: pages deploy out --project-name=sdq-website --branch=ci-${{ github.sha }} --commit-hash=${{ github.sha }}
+
+      - name: Require a preview deployment URL
+        if: steps.freshness.outputs.current == 'true'
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.preview.outputs.deployment-url }}
+        run: test -n "$DEPLOYMENT_URL"
+
+      - name: Test the preview deployment
+        id: preview-check
+        if: steps.freshness.outputs.current == 'true'
+        env:
+          SDQ_PREVIEW_URL: ${{ steps.preview.outputs.deployment-url }}
+        run: npm run test:e2e -- tests/e2e/legacy-navigation.spec.ts tests/e2e/more-content.spec.ts tests/e2e/video-delivery.spec.ts --project=chromium
+
+      - name: Recheck main before publishing to production
+        id: production-freshness
+        if: steps.freshness.outputs.current == 'true'
+        shell: bash
+        run: |
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          latest_main="$(git rev-parse origin/main)"
+          if [[ "$GITHUB_SHA" == "$latest_main" ]]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Production deployment skipped"
+              echo
+              echo "Main advanced to \`$latest_main\` while preview \`$GITHUB_SHA\` was being verified."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Publish to production
+        id: production
+        if: steps.production-freshness.outputs.current == 'true'
+        uses: cloudflare/wrangler-action@v4.0.0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          wranglerVersion: "4.131.2"
+          workingDirectory: .
+          command: pages deploy out --project-name=sdq-website --branch=main --commit-hash=${{ github.sha }}
+
+      - name: Require a production deployment URL
+        if: steps.production-freshness.outputs.current == 'true'
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.production.outputs.deployment-url }}
+        run: test -n "$DEPLOYMENT_URL"
+
+      - name: Test the production deployment
+        id: production-check
+        if: steps.production-freshness.outputs.current == 'true'
+        env:
+          SDQ_PREVIEW_URL: ${{ steps.production.outputs.deployment-url }}
+        run: npm run test:e2e -- tests/e2e/legacy-navigation.spec.ts tests/e2e/more-content.spec.ts tests/e2e/video-delivery.spec.ts --project=chromium
+
+      - name: Save browser failure details
+        if: failure() && steps.freshness.outputs.current == 'true'
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: browser-failures-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Record deployment results
+        if: always() && steps.freshness.outputs.current == 'true'
+        shell: bash
+        env:
+          PREVIEW_URL: ${{ steps.preview.outputs.deployment-url }}
+          PRODUCTION_URL: ${{ steps.production.outputs.deployment-url }}
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          {
+            echo "### Cloudflare deployment"
+            echo
+            echo "- Source commit: \`$SOURCE_COMMIT\`"
+            echo "- Preview URL: ${PREVIEW_URL:-Not deployed}"
+            echo "- Production URL: ${PRODUCTION_URL:-Not deployed}"
+          } >> "$GITHUB_STEP_SUMMARY"
