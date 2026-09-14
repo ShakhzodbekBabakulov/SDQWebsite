@@ -8,14 +8,14 @@ const nativeIp = preview.hostname === "[::1]" ? "::1" : preview.hostname;
 
 const webServer = useCloudflare
   ? {
-      command: `npx wrangler pages dev out --ip ${nativeIp} --port ${preview.port || "3106"}`,
+      command: `node node_modules/wrangler/bin/wrangler.js pages dev out --ip ${nativeIp} --port ${preview.port || "3106"}`,
       url: previewUrl,
       reuseExistingServer: false,
       timeout: 30_000,
     }
-  : isLocalPreview
+  : isLocalPreview && !process.env.SDQ_PREVIEW_URL
     ? {
-        command: `npm run start -- --listen tcp://${preview.hostname}:${preview.port || "3000"} --no-port-switching`,
+        command: `node node_modules/serve/build/main.js out --listen tcp://${preview.hostname}:${preview.port || "3000"} --no-port-switching --no-clipboard`,
         url: previewUrl,
         reuseExistingServer: process.env.CI !== "true",
         timeout: 30_000,

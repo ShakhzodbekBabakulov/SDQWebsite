@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /administrator/
+Disallow: /installation/
+Disallow: /logs/
+Disallow: /tmp/
+
+Sitemap: https://sdq-sfb.com/sitemap.xml

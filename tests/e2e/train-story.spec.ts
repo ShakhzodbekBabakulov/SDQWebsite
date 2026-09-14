@@ -744,9 +744,7 @@ test("canvas painting failure falls back to the ambient poster without stopping 
         videos.filter((video) => getComputedStyle(video).opacity === "1").length,
     ),
   ).toBe(1);
-  expect(await page.locator(".video-stage").getAttribute("data-frame")).not.toBe(
-    firstFrame,
-  );
+  await expect.poll(() => page.locator(".video-stage").getAttribute("data-frame")).not.toBe(firstFrame);
 });
 
 test("canvas context loss keeps the foreground film running", async ({ page }) => {
@@ -767,9 +765,7 @@ test("canvas context loss keeps the foreground film running", async ({ page }) =
   );
   await expect(page.locator(".video-stage__ambient-poster")).toBeVisible();
   await page.waitForTimeout(350);
-  expect(await page.locator(".video-stage").getAttribute("data-frame")).not.toBe(
-    firstFrame,
-  );
+  await expect.poll(() => page.locator(".video-stage").getAttribute("data-frame")).not.toBe(firstFrame);
 });
 
 test("scene one keeps its captions inside the film on a taller desktop", async ({

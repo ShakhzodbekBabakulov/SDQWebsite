@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url><loc>https://sdq-sfb.com/</loc></url>
+  <url><loc>https://sdq-sfb.com/more/</loc>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/"/></url>
+  <url><loc>https://sdq-sfb.com/more/en/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/"/></url>
+  <url><loc>https://sdq-sfb.com/more/o-kompanii/</loc>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/o-kompanii/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/about/"/></url>
+  <url><loc>https://sdq-sfb.com/more/1s-produkty/</loc>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/1s-produkty/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/1c-products/"/></url>
+  <url><loc>https://sdq-sfb.com/more/uslugi/</loc>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/uslugi/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/services/"/></url>
+  <url><loc>https://sdq-sfb.com/more/1c-cloud/</loc>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/1c-cloud/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/1c-cloud/"/></url>
+  <url><loc>https://sdq-sfb.com/more/podderzhka/</loc>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/podderzhka/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/support/"/></url>
+  <url><loc>https://sdq-sfb.com/more/kontakty/</loc>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/kontakty/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/contacts/"/></url>
+  <url><loc>https://sdq-sfb.com/more/uslugi/vnedrenie-1s/</loc>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/uslugi/vnedrenie-1s/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/services/implementation-of-1c/"/></url>
+  <url><loc>https://sdq-sfb.com/more/uslugi/obuchenie-personala/</loc>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/uslugi/obuchenie-personala/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/services/personnel-training/"/></url>
+  <url><loc>https://sdq-sfb.com/more/uslugi/vosstanovlenie-uchjota/</loc>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/uslugi/vosstanovlenie-uchjota/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/services/account-restoration/"/></url>
+  <url><loc>https://sdq-sfb.com/more/uslugi/analitika-i-otchjotnost/</loc>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/uslugi/analitika-i-otchjotnost/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/services/analytics-and-reporting/"/></url>
+  <url><loc>https://sdq-sfb.com/more/uslugi/integratsiya-1s/</loc>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/uslugi/integratsiya-1s/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/services/1c-integration/"/></url>
+  <url><loc>https://sdq-sfb.com/more/en/about/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/about/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/o-kompanii/"/></url>
+  <url><loc>https://sdq-sfb.com/more/en/1c-products/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/1c-products/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/1s-produkty/"/></url>
+  <url><loc>https://sdq-sfb.com/more/en/services/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/services/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/uslugi/"/></url>
+  <url><loc>https://sdq-sfb.com/more/en/1c-cloud/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/1c-cloud/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/1c-cloud/"/></url>
+  <url><loc>https://sdq-sfb.com/more/en/support/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/support/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/podderzhka/"/></url>
+  <url><loc>https://sdq-sfb.com/more/en/contacts/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/contacts/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/kontakty/"/></url>
+  <url><loc>https://sdq-sfb.com/more/en/services/implementation-of-1c/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/services/implementation-of-1c/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/uslugi/vnedrenie-1s/"/></url>
+  <url><loc>https://sdq-sfb.com/more/en/services/personnel-training/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/services/personnel-training/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/uslugi/obuchenie-personala/"/></url>
+  <url><loc>https://sdq-sfb.com/more/en/services/account-restoration/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/services/account-restoration/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/uslugi/vosstanovlenie-uchjota/"/></url>
+  <url><loc>https://sdq-sfb.com/more/en/services/analytics-and-reporting/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/services/analytics-and-reporting/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/uslugi/analitika-i-otchjotnost/"/></url>
+  <url><loc>https://sdq-sfb.com/more/en/services/1c-integration/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/services/1c-integration/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/uslugi/integratsiya-1s/"/></url>
+  <url><loc>https://sdq-sfb.com/more/1s-produkty/1s-bukhgalteriya-8-dlya-uzbekistana/</loc></url>
+  <url><loc>https://sdq-sfb.com/more/1s-produkty/1s-zarplata-i-upravlenie-personalom-8-dlya-uzbekistana/</loc></url>
+  <url><loc>https://sdq-sfb.com/more/1s-produkty/1c-upravlenie-kompaniej-8-dlya-uzbekistana/</loc></url>
+  <url><loc>https://sdq-sfb.com/more/1s-produkty/1s-dokumentooborot-8/</loc></url>
+  <url><loc>https://sdq-sfb.com/more/1s-produkty/1s-wms-logistika-upravlenie-skladom/</loc></url>
+  <url><loc>https://sdq-sfb.com/more/1s-produkty/1s-mdm/</loc></url>
+  <url><loc>https://sdq-sfb.com/more/1s-produkty/1s-analitika/</loc></url>
+  <url><loc>https://sdq-sfb.com/more/1s-produkty/1s-shina/</loc></url>
+  <url><loc>https://sdq-sfb.com/more/uslugi/iskusstvennyj-intellekt-1c/</loc>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/uslugi/iskusstvennyj-intellekt-1c/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/services/ai-1c-integration/"/></url>
+  <url><loc>https://sdq-sfb.com/more/en/services/ai-1c-integration/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://sdq-sfb.com/more/en/services/ai-1c-integration/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://sdq-sfb.com/more/uslugi/iskusstvennyj-intellekt-1c/"/></url>
+</urlset>

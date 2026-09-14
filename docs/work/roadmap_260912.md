@@ -40,6 +40,6 @@ Turn on Cloudflare Web Analytics and confirm that a real visit appears in the da
 
 ### SDQ-5 · Make the website discoverable on Google
 
-Add searchable company content, accurate metadata, robots instructions, a sitemap, and organization details. Verify the `sdq-sfb.com` domain in Google Search Console through Cloudflare DNS and submit the sitemap.
+The approved scope now uses one domain: `sdq-sfb.com`, with the train at `/` and rebuilt Next.js company pages at `/more/`. This task includes 32 migrated company pages, two new AI integration service pages, responsive design repairs, unique metadata, structured data, redirects and a 35-page sitemap. The earlier two-domain/Joomla administration proposal is superseded. See the [submission guide](../seo/README.md) and [validation report](../seo/validation.md).
 
-**Action:** complete after SDQ-3, then monitor indexing
+**Action:** deploy the reviewed build after Cloudflare sign-in, verify branded-domain routing and hosting crawler settings, then verify the `sdq-sfb.com` Search Console property and submit `https://sdq-sfb.com/sitemap.xml`. Record accepted submission and processing status. Keep open until production and submission are verified; no Joomla login is needed.

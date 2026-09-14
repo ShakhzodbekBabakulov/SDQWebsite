@@ -39,6 +39,12 @@ jobs:
       - name: Build the website
         run: npm run build
 
+      - name: Check TypeScript
+        run: npx tsc --noEmit
+
+      - name: Validate exported pages and sitemap
+        run: python3 scripts/verify-export.py
+
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
@@ -182,7 +188,7 @@ jobs:
         if: steps.freshness.outputs.current == 'true'
         env:
           SDQ_PREVIEW_URL: ${{ steps.preview.outputs.deployment-url }}
-        run: npm run test:e2e -- tests/e2e/legacy-navigation.spec.ts tests/e2e/more-content.spec.ts tests/e2e/video-delivery.spec.ts --project=chromium
+        run: npm run test:e2e -- tests/e2e/legacy-navigation.spec.ts tests/e2e/company-content.spec.ts tests/e2e/video-delivery.spec.ts --project=chromium
 
       - name: Recheck main before publishing to production
         id: production-freshness
@@ -250,7 +256,7 @@ jobs:
         if: steps.production-freshness.outputs.current == 'true'
         env:
           SDQ_PREVIEW_URL: ${{ steps.production.outputs.deployment-url }}
-        run: npm run test:e2e -- tests/e2e/legacy-navigation.spec.ts tests/e2e/more-content.spec.ts tests/e2e/video-delivery.spec.ts --project=chromium
+        run: npm run test:e2e -- tests/e2e/legacy-navigation.spec.ts tests/e2e/company-content.spec.ts tests/e2e/video-delivery.spec.ts --project=chromium
 
       - name: Save browser failure details
         if: failure() && steps.freshness.outputs.current == 'true'
