@@ -39,24 +39,30 @@ To roll back only this operational change, restore that file to
 `/home/sdqsfbco/public_html/.htaccess` after checking for subsequent edits.
 
 Verified HTTP redirects for `/`, `/en/` and `/index.php` keep the legacy hostname
-and upgrade to HTTPS. The main site's Russian and English homepages still return
-HTTP 200 with their expected titles. Certificate validation for the new hostname
-fails; no certificate-validation bypass was used.
+and upgrade to HTTPS. At the latest check (14 September, 12:05 UTC), HTTPS
+requests using `--resolve legacy.sdq-sfb.com:443:37.153.159.14` and a browser
+user agent returned HTTP 200 for both languages with the expected Joomla titles.
+Certificate validation succeeded without a bypass. Plain curl requests received
+Joomla's 403 response, so user-agent-dependent filtering should be considered
+when diagnosing automated availability checks.
+
+Public DNS remains blocked: both the local resolver and `1.1.1.1` report that
+the legacy name does not exist. The latter returns `earl.ns.cloudflare.com` and
+`nelci.ns.cloudflare.com` as the main domain's nameservers. The successful direct
+host requests do not establish public browser availability.
 
 ### Remaining before publication
 
-1. Ahost must enable the account's SSL Host Installer (`sslinstall`) and AutoSSL,
-   or issue/install the certificate for `legacy.sdq-sfb.com` themselves. The
-   cPanel SSL/TLS Certificates page reports that the feature is unavailable.
-   The read-only UAPI `SSL get_autossl_renewal_status` call also returned status 0:
-   `You do not have the feature «sslinstall».` Certificate management is blocked
-   by the hosting plan, not by the local website code.
+1. Recheck certificate validity through public DNS after the record is fixed.
+   The earlier TLS failure no longer reproduces against Ahost directly. Account
+   certificate management was unavailable in cPanel (`sslinstall`), so future
+   renewal/setup changes may still require the hosting provider.
 2. Main now documents the Cloudflare Pages launch and Cloudflare DNS. Verify
    `legacy.sdq-sfb.com` has an A record pointing to `37.153.159.14` in the active
    DNS zone, and preserve the current mail records. This task has not deployed
    these contact-link changes. Ahost's DNS record alone is insufficient after
    the nameserver change.
-3. Once HTTPS works, check Joomla's live-site, cookie-domain and HTTPS settings,
+3. Once the public hostname works, check Joomla's live-site, cookie-domain and HTTPS settings,
    redirects, canonical/language URLs and hard-coded internal links. The old
    site's navigation and language switcher must stay on `legacy.sdq-sfb.com`.
    Avoid introducing a redirect from the new homepage back to Joomla.
@@ -70,7 +76,7 @@ fails; no certificate-validation bypass was used.
 
 ## Local verification
 
-While the legacy certificate is pending, the local development preview can open
+While the legacy DNS record is pending, the local development preview can open
 the existing Joomla site if the main hostname still reaches Ahost locally.
 This temporary address stops being a Joomla preview once local DNS reaches the
 new Cloudflare homepage. In PowerShell:
@@ -82,7 +88,7 @@ npm run dev -- --hostname 127.0.0.1 --port 3100
 
 This override applies only to `next dev`. Production builds ignore it and always
 use `https://legacy.sdq-sfb.com/`, preventing a local preview setting from creating
-a homepage loop at deployment. It does not resolve the legacy certificate blocker.
+a homepage loop at deployment. It does not resolve the legacy DNS blocker.
 No credentials or private database files are needed for the preview.
 
 Run `npm test`, `npm run lint`, `npm run build`, then
@@ -92,11 +98,21 @@ languages and the mobile screen-reader destination. The existing scene-six test
 also checks the language switcher and unchanged phone/email actions.
 
 Verified in this worktree on 2026-09-14: 35 unit tests, ESLint and the production
-build passed. Chromium passed all eight desktop/mobile locale navigation tests
-and the existing scene-six contact/language-switcher test (9 browser tests).
+static export passed. The full Chromium run passed 56 of 58 cases, including all
+eight new navigation cases and the scene-six contact/language-switcher case.
+Two existing wheel-input tests sent events 220–450 ms apart on Windows, beyond
+the 180 ms gesture idle timeout, and unintentionally advanced extra chapters.
+The translation test now sends one native wheel action; the continuous-gesture
+test schedules synthetic wheel events inside the page and asserts their maximum
+gap and default prevention. Both corrected cases passed on a focused rerun.
+All 58 cases therefore passed across those runs; this is not a single green full
+run. Firefox, WebKit and physical-device checks were not rerun for this change.
+`npm start` and Playwright now serve `out/` with a static server that supports
+video range requests, matching the Cloudflare export rather than `next start`.
 The destination was intercepted in the navigation tests. Authoritative DNS and
-HTTP redirects have since been checked on the hosting server; live TLS and Joomla
-navigation/form delivery remain unverified until Ahost enables the certificate.
+HTTP redirects have since been checked on the hosting server, and direct-host
+TLS requests pass. Public DNS and live browser navigation/form delivery remain
+release gates.
 
 The development-only override was also verified by clicking the Russian
 «Подробнее» in the actual local browser: it opened the existing Joomla homepage
