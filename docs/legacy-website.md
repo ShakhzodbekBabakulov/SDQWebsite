@@ -64,10 +64,12 @@ the last verified deployment from Cloudflare if the live site is broken.
 
 ## Rollback checkpoint
 
-Before this release, production was Cloudflare deployment
-`7aa38b76-620a-43f3-8b30-07f05b554a6c` (source `7cd6677`), available at
-https://7aa38b76.sdq-website.pages.dev. Restore that deployment from the Pages
-dashboard if post-publication checks fail; it contains the previous homepage.
+The verified production checkpoint before automatic publishing is Cloudflare
+deployment `7ee1fb8b-76ea-4783-8b67-cc0fd8c73e7a` (source `8b499d0`), available at
+https://7ee1fb8b.sdq-website.pages.dev. Restore that deployment from the Pages
+dashboard if the first automated release breaks the live site. It includes the
+company pages and working video-range delivery. For later releases, choose the
+most recent verified production deployment recorded in GitHub and Cloudflare.
 
 ## Verified 2026-09-14
 

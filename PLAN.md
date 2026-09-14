@@ -15,12 +15,13 @@ Pages Function and R2 video storage remain part of every deployment.
 **Tools:** Node.js 24, npm's committed lockfile, Playwright, the existing pinned
 Wrangler 4.131.2, and official GitHub/Cloudflare actions. No application redesign.
 
-**Execution progress:** The workflow and native browser-test setup are
+**Pre-release checkpoint:** The workflow and native browser-test setup are
 implemented on `codex/github-deploy`. All 40 unit tests, lint, the production
-build, and all 65 native-runtime Chromium tests pass. Hosting instructions are
-updated. The account ID is saved in GitHub; the dedicated API token is being
-added through the user's dashboard. Independent review and a real GitHub run
-remain before merge and activation.
+build, and all 65 native-runtime Chromium tests pass locally and on the initial
+GitHub PR run. Independent code review passed after URL-validation and local
+IPv6 fixes; final review corrected the recovery checkpoint. The account ID is
+saved in GitHub. Credential setup, final-revision checks and activation evidence
+are tracked in [PR #6](https://github.com/ShakhzodbekBabakulov/SDQWebsite/pull/6).
 
 ## Confirmed starting point
 
