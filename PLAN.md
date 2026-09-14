@@ -1,3 +1,193 @@
+# Automatic publishing from GitHub — implementation plan, 2026-09-14
+
+> Execution: use the executing-plans skill in this session after approval.
+
+**Goal:** Changes merged into `main` automatically pass checks and publish to
+the existing Cloudflare Pages project serving `sdq-sfb.com`.
+
+**User decision:** Keep the existing Cloudflare project and automate publishing
+from GitHub. This plan implements that choice; the user approved implementation with “go” on 2026-09-14.
+
+**Architecture:** GitHub Actions tests the website, saves the tested build, and
+uses Cloudflare's official action to publish that same build. The existing
+Pages Function and R2 video storage remain part of every deployment.
+
+**Tools:** Node.js 24, npm's committed lockfile, Playwright, the existing pinned
+Wrangler 4.131.2, and official GitHub/Cloudflare actions. No application redesign.
+
+**Pre-release checkpoint:** The workflow and native browser-test setup are
+implemented on `codex/github-deploy`. All 40 unit tests, lint, the production
+build, and all 65 native-runtime Chromium tests pass locally and on the initial
+GitHub PR run. Independent code review passed after URL-validation and local
+IPv6 fixes; final review corrected the recovery checkpoint. The account ID is
+saved in GitHub. Credential setup, final-revision checks and activation evidence
+are tracked in [PR #6](https://github.com/ShakhzodbekBabakulov/SDQWebsite/pull/6).
+
+## Confirmed starting point
+
+### Follow-up: resolve the mobile hold check
+
+The user authorized resolving the remaining check with “resolve”. Runs
+34853456986 and 34853931636 failed the delayed-reverse hold assertion. The latter
+trace sampled frame 159 while `data-destination` was still `1`, before the scroll
+request was processed; after processing destination `0`, the player held frame
+162. Five local repetitions passed, consistent with a scheduling race in the
+test rather than evidence of a failure to hold after the reversal starts.
+
+1. Update only the delayed-reverse case in `tests/e2e/mobile-recovery.spec.ts`
+   to await destination `0` and the outgoing video's native `paused` property
+   before taking the held-frame sample. Keep the one-frame tolerance, blocked
+   reverse download, 650 ms observation, and real recovery assertions.
+2. Repeat the focused case across browsers and run the complete GitHub checks.
+3. Review, merge, and verify an actual GitHub-triggered production deployment.
+
+Both required GitHub secrets are now saved. The user authorized reusing the
+existing token after adding Pages and R2 permissions; its validity and access
+to the SDQ Pages project and video bucket were verified without printing it.
+
+- Main is clean at `8b499d00c8fe6416ec94d4cb1bd722e1c9140202`; PR #5 is merged.
+- Production deployment `7ee1fb8b-76ea-4783-8b67-cc0fd8c73e7a` passed live checks.
+- GitHub Actions is enabled, but no workflows, secrets or variables are set.
+- Existing project: `sdq-website`; private video bucket: `sdq-website-media`.
+- Account: `cb3cfb93682854e97d1164b9eef399e4`.
+- Builds already prepare the four video object references. The upload command
+  checks every source file before uploading; deployment must follow that upload.
+- Cloudflare's public DNS points at the new host. This computer's normal resolver
+  still reaches the former host; final custom-domain checks must account for it.
+
+## Files to change
+
+| File | Purpose |
+| --- | --- |
+| `.github/workflows/cloudflare.yml` (new) | Check PRs; test, preview and publish merged main; report deployment results. |
+| `playwright.config.ts` | Let the existing browser tests start Cloudflare's local runtime when requested by the workflow. |
+| `README.md` | Explain automatic releases, secure setup, viewing results and manual recovery. |
+| `docs/legacy-website.md` | Replace the manual-only release instructions with the automated sequence. |
+| `PLAN.md` | Record approval, implementation progress and actual verification. |
+
+No domain move or new hosting project is required. The company pages, player,
+public video addresses and video handler keep their current behavior.
+
+## Task 1: Add the checked publishing workflow
+
+- [ ] Work on an isolated feature branch based on current main.
+- [ ] Trigger checks on pull requests and pushes to `main`, with a manual rerun
+  option. A manual run may publish only when its selected branch is `main`.
+- [ ] The check job uses read-only repository access and no Cloudflare secrets.
+  Install Node 24 and dependencies with `npm ci`; run the existing commands:
+
+```sh
+npm test
+npm run lint
+npm run build
+npx playwright install --with-deps chromium
+npm run upload:videos -- --local
+SDQ_USE_CLOUDFLARE=1 SDQ_PREVIEW_URL=http://127.0.0.1:3106 npm run test:e2e -- --project=chromium
+```
+
+- [ ] In the browser configuration, select the native local server only when
+  `SDQ_USE_CLOUDFLARE` equals `1`; preserve the existing static-preview default.
+  The native server command is:
+
+```sh
+npx wrangler pages dev out --ip 127.0.0.1 --port 3106
+```
+
+  Playwright starts the server and waits for readiness. On GitHub, do not reuse
+  an unrelated running server. The existing 65 Chromium cases then exercise the
+  video Function and locally seeded R2 storage without production credentials.
+
+- [ ] Save the tested `out/` directory and generated
+  `cloudflare/video-manifest.json` together as a build artifact named with the
+  commit SHA. The manifest must travel with the build so future movie changes
+  cannot deploy new pages with old storage references. Use official
+  `actions/upload-artifact@v7.0.1` and
+  `actions/download-artifact@v8.0.1`; retain artifacts for seven days.
+- [ ] The deploy job requires successful checks and runs only for main pushes
+  or a manual main run. Check out the same commit, install dependencies and
+  download that run's tested build at the repository root, preserving `out/`
+  and `cloudflare/`, instead of rebuilding it. Install Chromium and its system
+  dependencies in this job too, for the hosted checks.
+- [ ] Serialize production releases with a single concurrency group and
+  `cancel-in-progress: false`, so uploading a release is not interrupted by a
+  newer commit. Immediately before publication compare the run's commit with
+  remote main; skip an outdated run and record why in its summary.
+- [ ] Inject the deployment credential only into publishing steps. Run
+  `npm run upload:videos -- --remote` before either Pages deployment.
+- [ ] First publish a preview on `ci-<commit SHA>`. Use the returned deployment
+  URL for all 15 existing Chromium company-page, navigation and video-delivery
+  checks. If the preview fails, the production publishing step must not run.
+- [ ] After preview checks pass, deploy the same artifact to `main`. Use the
+  official `cloudflare/wrangler-action@v4.0.0`, with `wranglerVersion: 4.131.2`,
+  the existing project root, and an explicit source commit. Its production
+  command is:
+
+```yaml
+command: pages deploy out --project-name=sdq-website --branch=main --commit-hash=${{ github.sha }}
+```
+
+- [ ] Read the action's `deployment-url` output rather than parsing terminal
+  prose. Run the same 15 checks against that production deployment URL:
+
+```sh
+npm run test:e2e -- tests/e2e/legacy-navigation.spec.ts tests/e2e/more-content.spec.ts tests/e2e/video-delivery.spec.ts --project=chromium
+```
+
+  Set `SDQ_PREVIEW_URL` to the action output; omit `SDQ_USE_CLOUDFLARE` for hosted
+  checks. Fail the workflow if a hosted check fails. Upload retained browser
+  failure traces and record preview URL, production URL and source commit in
+  the GitHub run summary. Deployment jobs receive `deployments: write`; check
+  jobs retain `contents: read` only. Do not publish fork PRs or expose secrets
+  through `pull_request_target`.
+
+## Task 2: Establish the secure Cloudflare connection
+
+- [ ] Create a dedicated deployment API token scoped to the existing Cloudflare
+  account, with Cloudflare Pages Edit and Workers R2 Storage Edit permissions.
+  The latter is required by the current Wrangler REST upload command; a
+  bucket-scoped S3 token cannot authenticate that command. Do not add DNS or
+  unrelated product permissions, or export the interactive login credentials.
+- [ ] Save it directly as the GitHub Actions secret `CLOUDFLARE_API_TOKEN` and
+  save the existing account ID as `CLOUDFLARE_ACCOUNT_ID`. Never put a credential
+  in source files, the plan, command arguments, logs or chat.
+- [ ] If the available Cloudflare session cannot create that token, finish the
+  workflow and local verification first, then guide the user through adding the
+  token directly in GitHub's secret form. Do not call the connection complete
+  while that credential is missing.
+
+## Task 3: Document and verify the complete connection
+
+- [ ] Update the two hosting guides with merge-triggered publishing, where to
+  see checks and deployment links, the dedicated token's permissions, and the
+  existing manual publish command as a recovery method.
+- [ ] Explain that deployment-email preferences are separate account settings;
+  this connection alone does not establish delivery of success emails.
+- [ ] Validate workflow syntax and official action inputs. Run the new native
+  local browser configuration with all 65 Chromium tests, plus unit tests,
+  lint and the production build. Preserve meaningful failure checks.
+- [ ] Open the automation PR and verify its GitHub check job succeeds without
+  publishing or accessing the Cloudflare token.
+- [ ] Review and merge the tested automation PR. Watch the first actual main
+  run through upload, preview verification, production and final verification.
+- [ ] Confirm Cloudflare's active production commit matches that GitHub run;
+  check the custom domain's homepage, `/more/`, `/more/en/`, nested pages and
+  exact video ranges. Record any DNS-resolution limitation separately.
+- [ ] If the first production verification fails, inspect the failure and
+  restore the recorded working deployment when necessary. A failed post-deploy
+  check makes the workflow red; it does not by itself undo a published release.
+- [ ] Finish only after a real GitHub-triggered production run passes and the
+  local main checkout is clean. Record the run and deployment links here.
+
+## Official references
+
+- https://developers.cloudflare.com/pages/how-to/use-direct-upload-with-continuous-integration/
+- https://github.com/cloudflare/wrangler-action/blob/v4.0.0/action.yml
+- https://github.com/actions/setup-node
+- https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency
+- https://developers.cloudflare.com/r2/api/tokens/
+
+---
+
 # SDQ /more/ public website migration — approved 2026-09-14
 
 The user approved implementing the complete revised PR #5 plan, including review,
