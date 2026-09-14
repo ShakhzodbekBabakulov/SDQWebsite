@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { INPUT_IDLE_MS } from "../../src/components/train-story/timeline.ts";
+import { FPS, INPUT_IDLE_MS } from "../../src/components/train-story/timeline.ts";
 
 const previewUrl = process.env.SDQ_PREVIEW_URL || "http://127.0.0.1:3000";
 
@@ -1320,14 +1320,15 @@ test("reduced motion jumps to a paused centre frame", async ({ browser }) => {
   await expect(page.locator("video")).toHaveCount(2);
   await expect(page.locator(".opening-greeting")).toHaveCount(0);
   await waitForStageFrame(page, 120, 120);
+  // Native clocks can vary within a frame; reduced motion must hold the exact picture.
   await expect
     .poll(() =>
       page
         .locator("video")
         .first()
-        .evaluate((video) => (video as HTMLVideoElement).currentTime),
+        .evaluate((video, fps) => Math.round((video as HTMLVideoElement).currentTime * fps), FPS),
     )
-    .toBeCloseTo(5, 2);
+    .toBe(120);
 
   await page.mouse.wheel(0, 100);
   await expect(chapterAnnouncement(page)).toHaveText("Official 1C partner");
@@ -1337,9 +1338,9 @@ test("reduced motion jumps to a paused centre frame", async ({ browser }) => {
       page
         .locator("video")
         .first()
-        .evaluate((video) => (video as HTMLVideoElement).currentTime),
+        .evaluate((video, fps) => Math.round((video as HTMLVideoElement).currentTime * fps), FPS),
     )
-    .toBeCloseTo(10.125, 2);
+    .toBe(243);
   await expect.poll(
     () => page.locator("video").evaluateAll((videos) =>
       videos.every((video) => (video as HTMLVideoElement).paused),
