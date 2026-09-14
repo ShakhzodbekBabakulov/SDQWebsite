@@ -6,6 +6,9 @@ out/
 .DS_Store
 playwright-report/
 test-results/
+.cache/
+.env*.local
+*.tsbuildinfo
 
 # Cloudflare CLI leftovers
 .dev.vars

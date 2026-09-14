@@ -9,6 +9,7 @@ export default defineConfig([
     ".next/**",
     ".wrangler/**",
     ".gstack/**",
+    ".cache/**",
     "out/**",
     "public/more/**", // Preserved third-party assets from the public website.
     "playwright-report/**",

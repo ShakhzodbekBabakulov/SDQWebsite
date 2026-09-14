@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 import { contactHomepageForLocale } from "../src/components/train-story/captions.ts";
+import { pages, canonicalPaths, absolute, structuredData } from "../src/content/site.ts";
 
 const publicRoot = new URL("../public", import.meta.url);
 const inventory = JSON.parse(readFileSync(new URL("../docs/more-inventory.json", import.meta.url)));
@@ -12,16 +13,28 @@ test("each language opens the corresponding company pages on this origin", () =>
   ]);
 });
 
-test("the entire public page and asset inventory is exported", () => {
-  assert.ok(inventory.pages.length >= 26, "Both languages and service detail pages must be present");
-  for (const page of inventory.pages) {
-    const file = new URL(`.${page.path}index.html`, publicRoot.href + "/");
-    assert.ok(existsSync(file), page.path);
-    const html = readFileSync(file, "utf8");
-    assert.ok(html.includes(page.title), page.path);
-    assert.doesNotMatch(html, /<form\b|csrf\.token|system\.keepalive|legacy\.sdq-sfb\.com/i, page.path);
+test("catalog preserves all original canonical routes and adds only the two AI services", () => {
+  assert.equal(canonicalPaths.length, 35);
+  for (const page of inventory.pages.filter(page => page.path !== '/more/ru/')) {
+    assert.ok(pages.some(current => current.path === page.path), page.path);
+    assert.ok(!existsSync(new URL(`.${page.path}index.html`, publicRoot.href + "/")), 'No conflicting legacy HTML');
   }
-  for (const asset of inventory.assets) {
-    assert.ok(existsSync(new URL(`.${asset}`, publicRoot.href + "/")), asset);
+  assert.equal(pages.filter(page => !page.counterpart).length, 8);
+  assert.equal(new Set(pages.map(page => page.title)).size, 34);
+  assert.equal(new Set(pages.map(page => page.description)).size, 34);
+});
+
+test("translations are reciprocal and structured data uses one company identity", () => {
+  for (const page of pages) {
+    if (page.counterpart) {
+      const other = pages.find(other => other.path === page.counterpart);
+      assert.equal(other?.counterpart, page.path);
+      assert.notEqual(other?.language, page.language);
+    } else {
+      assert.equal(page.language, 'ru'); assert.equal(page.kind, 'product');
+    }
+    const schema = structuredData(page);
+    assert.equal(schema['@graph'][0]['@id'], 'https://sdq-sfb.com/#organization');
+    assert.ok(JSON.stringify(schema).includes(absolute(page.path)));
   }
 });

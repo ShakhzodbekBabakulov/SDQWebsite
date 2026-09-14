@@ -16,8 +16,8 @@ export default defineConfig({
     baseURL: previewUrl,
     trace: "retain-on-failure",
   },
-  webServer: {
-    command: `npm run start -- --listen tcp://${new URL(previewUrl).hostname}:${new URL(previewUrl).port || "3000"} --no-port-switching`,
+  webServer: process.env.SDQ_PREVIEW_URL ? undefined : {
+    command: `node node_modules/serve/build/main.js out --listen tcp://${new URL(previewUrl).hostname}:${new URL(previewUrl).port || "3000"} --no-port-switching --no-clipboard`,
     url: previewUrl,
     reuseExistingServer: true,
     timeout: 30_000,

@@ -1,3 +1,5 @@
+> Historical PR #5 import and video-delivery record. The Next.js rebuild is documented in [company-pages.md](company-pages.md); current SEO and release status is in [seo/validation.md](seo/validation.md).
+
 # Company pages at /more/
 
 The animated homepage and the recovered public company website are exported

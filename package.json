@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/prepare-video.mjs && next build",
+    "build": "node scripts/generate-seo.mjs && node scripts/prepare-video.mjs && next build",
     "start": "serve out --no-clipboard",
     "lint": "eslint",
     "test": "node --test tests/*.test.mjs",
