@@ -1139,7 +1139,9 @@ test("scene six presents the approved contact actions in the film's right side",
     await expect(page.getByRole("heading", { name: item.headline })).toBeVisible();
     await expect(page.getByRole("link", { name: item.action })).toHaveAttribute(
       "href",
-      "https://sdq-sfb.com/",
+      item.button === "EN"
+        ? "https://legacy.sdq-sfb.com/en/"
+        : "https://legacy.sdq-sfb.com/",
     );
   }
 

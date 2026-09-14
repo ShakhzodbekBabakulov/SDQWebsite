@@ -7,7 +7,7 @@ import {
   captionsByChapter,
   CONTACT_EMAIL,
   CONTACT_EMAIL_HREF,
-  CONTACT_HOMEPAGE,
+  contactHomepageForLocale,
   CONTACT_PHONE_HREF,
   CONTACT_PHONE_LABEL,
   DEFAULT_LOCALE,
@@ -528,7 +528,7 @@ function TrainStoryExperience({ reducedMotion }: ExperienceProps) {
                       {CONTACT_EMAIL}
                     </a>
                   </div>
-                  <a className="contact-action" href={CONTACT_HOMEPAGE}>
+                  <a className="contact-action" href={contactHomepageForLocale(locale)}>
                     {activeCaption.captions[locale].action}
                     <span aria-hidden="true">→</span>
                   </a>
@@ -623,7 +623,7 @@ function TrainStoryExperience({ reducedMotion }: ExperienceProps) {
             {caption?.kind === "contact" ? <p>
               <a href={CONTACT_PHONE_HREF} tabIndex={-1}>{CONTACT_PHONE_LABEL}</a>{" "}
               <a href={CONTACT_EMAIL_HREF} tabIndex={-1}>{CONTACT_EMAIL}</a>{" "}
-              <a href={CONTACT_HOMEPAGE} tabIndex={-1}>{caption.captions[locale].action}</a>
+              <a href={contactHomepageForLocale(locale)} tabIndex={-1}>{caption.captions[locale].action}</a>
             </p> : null}
           </section>;
         })}
