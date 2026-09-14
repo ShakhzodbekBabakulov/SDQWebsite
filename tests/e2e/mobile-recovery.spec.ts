@@ -266,6 +266,10 @@ test("a delayed reverse download keeps the outgoing picture until real decoding 
   await page.waitForFunction(() => Number(document.querySelector<HTMLElement>(".video-stage")?.dataset.frame) > 156);
   await scrollToChapter(page, 0);
 
+  // Native scrolling is processed on a later animation frame; visibility alone
+  // does not mean the outgoing movie has stopped for the reverse download.
+  await expect(page.locator(".train-story")).toHaveAttribute("data-destination", "0");
+  await expect(forwardFilm(page)).toHaveJSProperty("paused", true);
   await expect(forwardFilm(page)).toHaveAttribute("data-active", "true");
   const heldFrame = Number(await stage(page).getAttribute("data-frame"));
   await page.waitForTimeout(650);

@@ -25,6 +25,26 @@ are tracked in [PR #6](https://github.com/ShakhzodbekBabakulov/SDQWebsite/pull/6
 
 ## Confirmed starting point
 
+### Follow-up: resolve the mobile hold check
+
+The user authorized resolving the remaining check with “resolve”. Runs
+34853456986 and 34853931636 failed the delayed-reverse hold assertion. The latter
+trace sampled frame 159 while `data-destination` was still `1`, before the scroll
+request was processed; after processing destination `0`, the player held frame
+162. Five local repetitions passed, consistent with a scheduling race in the
+test rather than evidence of a failure to hold after the reversal starts.
+
+1. Update only the delayed-reverse case in `tests/e2e/mobile-recovery.spec.ts`
+   to await destination `0` and the outgoing video's native `paused` property
+   before taking the held-frame sample. Keep the one-frame tolerance, blocked
+   reverse download, 650 ms observation, and real recovery assertions.
+2. Repeat the focused case across browsers and run the complete GitHub checks.
+3. Review, merge, and verify an actual GitHub-triggered production deployment.
+
+Both required GitHub secrets are now saved. The user authorized reusing the
+existing token after adding Pages and R2 permissions; its validity and access
+to the SDQ Pages project and video bucket were verified without printing it.
+
 - Main is clean at `8b499d00c8fe6416ec94d4cb1bd722e1c9140202`; PR #5 is merged.
 - Production deployment `7ee1fb8b-76ea-4783-8b67-cc0fd8c73e7a` passed live checks.
 - GitHub Actions is enabled, but no workflows, secrets or variables are set.
