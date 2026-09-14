@@ -29,7 +29,7 @@ The site presents SDQ through a six-carriage train journey. Each stop explains o
 | Website | Next.js 16 and React 19 |
 | Language | TypeScript |
 | Browser testing | Playwright |
-| Hosting | Cloudflare Pages planned |
+| Hosting | Cloudflare Pages, live at [sdq-sfb.com](https://sdq-sfb.com) |
 
 ## Run locally
 
@@ -57,6 +57,19 @@ Playwright may require a one-time browser installation:
 npx playwright install
 ```
 
+## Deploy
+
+The site is published to Cloudflare Pages as a static export. The Pages project is `sdq-website`; it is not connected to GitHub, so pushing to `main` does not publish. To publish the current checkout:
+
+```bash
+npm run build
+npx wrangler@latest pages deploy out --project-name sdq-website --branch main
+```
+
+Run the deploy command from a directory outside this project if the Cloudflare CLI tries to reconfigure the build. The deploy uses the Cloudflare login stored by `wrangler login`. Every deploy also gets a permanent preview address of the form `https://<id>.sdq-website.pages.dev`, and the latest one is always at `https://sdq-website.pages.dev`.
+
+DNS for `sdq-sfb.com` is managed in Cloudflare. The bare domain and `www` point at the Pages project; the mail records point directly at the previous hosting server so email keeps working.
+
 ## Project map
 
 ```text
@@ -78,4 +91,4 @@ docs/                            Verification records and upcoming work
 
 ## Current status
 
-The desktop and mobile foundations are implemented. The next work is real-phone polish, Cloudflare publishing, visitor statistics, and Google Search Console setup.
+The site is live at [sdq-sfb.com](https://sdq-sfb.com) since 14 September 2026. The desktop and mobile foundations are implemented. The next work is real-phone polish, visitor statistics, and Google Search Console setup.
