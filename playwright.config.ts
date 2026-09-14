@@ -1,6 +1,26 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const previewUrl = process.env.SDQ_PREVIEW_URL || "http://127.0.0.1:3000";
+const useCloudflare = process.env.SDQ_USE_CLOUDFLARE === "1";
+const previewUrl = process.env.SDQ_PREVIEW_URL || (useCloudflare ? "http://127.0.0.1:3106" : "http://127.0.0.1:3000");
+const preview = new URL(previewUrl);
+const isLocalPreview = ["127.0.0.1", "localhost", "[::1]"].includes(preview.hostname);
+const nativeIp = preview.hostname === "[::1]" ? "::1" : preview.hostname;
+
+const webServer = useCloudflare
+  ? {
+      command: `node node_modules/wrangler/bin/wrangler.js pages dev out --ip ${nativeIp} --port ${preview.port || "3106"}`,
+      url: previewUrl,
+      reuseExistingServer: false,
+      timeout: 30_000,
+    }
+  : isLocalPreview && !process.env.SDQ_PREVIEW_URL
+    ? {
+        command: `node node_modules/serve/build/main.js out --listen tcp://${preview.hostname}:${preview.port || "3000"} --no-port-switching --no-clipboard`,
+        url: previewUrl,
+        reuseExistingServer: process.env.CI !== "true",
+        timeout: 30_000,
+      }
+    : undefined;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -16,12 +36,7 @@ export default defineConfig({
     baseURL: previewUrl,
     trace: "retain-on-failure",
   },
-  webServer: process.env.SDQ_PREVIEW_URL ? undefined : {
-    command: `node node_modules/serve/build/main.js out --listen tcp://${new URL(previewUrl).hostname}:${new URL(previewUrl).port || "3000"} --no-port-switching --no-clipboard`,
-    url: previewUrl,
-    reuseExistingServer: true,
-    timeout: 30_000,
-  },
+  webServer,
   projects: [
     {
       name: "chromium",
