@@ -1,4 +1,4 @@
-import videos from './video-manifest.json' with { type: 'json' };
+import videos from './video-manifest.mjs';
 
 // Single ranges cover browser media requests. Unsupported range syntax is
 // ignored (full 200 response), as permitted by HTTP; unsatisfiable ranges are 416.
