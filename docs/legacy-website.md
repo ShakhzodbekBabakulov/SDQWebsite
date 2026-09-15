@@ -3,7 +3,8 @@
 # Company pages at /more/
 
 The animated homepage and the recovered public company website are exported
-and published together to the existing Cloudflare Pages project `sdq-website`.
+and published together by the Cloudflare Pages project `sdqwebsite`, which builds
+this repository's `main` branch.
 The public website does not require Joomla, PHP, a database or the previous host
 at runtime. There is no visitor-facing legacy hostname or reverse proxy.
 
@@ -51,27 +52,24 @@ WebKit. The content crawl visits every inventoried page and asset, checks intern
 links and images, and fails on browser errors or missing same-origin resources.
 The navigation tests load actual company pages; no destination is intercepted.
 
-The GitHub Actions workflow checks PRs without publishing. A push or merge to
-`main` runs the checks, uploads the referenced videos, publishes and verifies a
-preview, then publishes the same tested artifact to the existing Pages project.
-The artifact includes both `out/` and the generated video manifest. It runs the
-company-page crawl, navigation and exact video-byte checks again on production.
-Credentials and manual recovery are described in README's deployment section.
+The GitHub Actions workflow checks pull requests and pushes without publishing.
+Cloudflare Pages builds and publishes every push to `main` itself; after such a
+push the workflow only uploads the referenced videos to the private bucket.
+Credentials and recovery are described in README's deployment section.
 
-Inspect the GitHub run for the source commit, deployment links and failed-test
-traces. Also verify the live homepage, `/more/`, `/more/en/`, nested routes,
-menus, language switching and contact links when accepting a release. A failed
-post-publication check does not automatically roll back production; restore
-the last verified deployment from Cloudflare if the live site is broken.
+Inspect the Cloudflare build for the source commit and log, and the GitHub run
+for failed-test traces. Also verify the live homepage, `/more/`, `/more/en/`,
+nested routes, menus, language switching and contact links when accepting a
+release. Nothing rolls back automatically; restore the last verified deployment
+from Cloudflare if the live site is broken.
 
 ## Rollback checkpoint
 
-The verified production checkpoint before automatic publishing is Cloudflare
-deployment `7ee1fb8b-76ea-4783-8b67-cc0fd8c73e7a` (source `8b499d0`), available at
-https://7ee1fb8b.sdq-website.pages.dev. Restore that deployment from the Pages
-dashboard if the first automated release breaks the live site. It includes the
-company pages and working video-range delivery. For later releases, choose the
-most recent verified production deployment recorded in GitHub and Cloudflare.
+The direct-upload project `sdq-website` and its deployments were deleted on
+2026-09-15 when hosting moved to the Git-connected project `sdqwebsite`. The
+first verified production deployment of that project is source `d0d23bd`. For
+later releases, choose the most recent verified production deployment listed in
+Cloudflare and roll back to it from the dashboard.
 
 ## Verified 2026-09-14
 
@@ -105,11 +103,9 @@ source hashes and uploads immutable keys before deployment. Preserve old objects
 so older deployments remain reproducible. The four public movie URLs do not
 change, and no extra public hostname or cross-origin video access is required.
 
-Deploy from the project root using the pinned `npx wrangler pages deploy out
---branch <branch>` command, so both the Functions directory and R2 binding in
-`wrangler.jsonc` are included. Do not use the earlier outside-project deployment
-workaround; it omits the Function. Use `--branch pr-5-more` for preview and
-`--branch main` only for the tested merged revision.
+Cloudflare builds from the repository root, so both the Functions directory and
+the R2 binding in `wrangler.jsonc` are included automatically. Push a branch to
+get a preview deployment; merge to `main` for production.
 
 For native local verification: run `npm run upload:videos -- --local`, then
 run `SDQ_USE_CLOUDFLARE=1 SDQ_PREVIEW_URL=http://127.0.0.1:3106 npm run test:e2e
