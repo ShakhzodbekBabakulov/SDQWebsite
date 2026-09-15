@@ -1,4 +1,4 @@
-name: Check and publish
+name: Check and upload videos
 
 on:
   pull_request:
@@ -24,7 +24,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7.0.0
         with:
-          node-version: 24
+          node-version-file: .node-version
           cache: npm
 
       - name: Install dependencies
@@ -57,16 +57,6 @@ jobs:
           SDQ_USE_CLOUDFLARE: "1"
           SDQ_PREVIEW_URL: http://127.0.0.1:3106
 
-      - name: Save the tested build
-        uses: actions/upload-artifact@v7.0.1
-        with:
-          name: sdq-build-${{ github.sha }}
-          path: |
-            out/
-            cloudflare/video-manifest.json
-          if-no-files-found: error
-          retention-days: 7
-
       - name: Save browser failure details
         if: failure()
         uses: actions/upload-artifact@v7.0.1
@@ -78,19 +68,16 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-  deploy:
-    name: Preview, verify, and publish
+  videos:
+    name: Upload videos to production storage
     needs: checks
-    if: >-
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     permissions:
       contents: read
-      deployments: write
     concurrency:
-      group: sdq-production-deployment
+      group: sdq-video-upload
       cancel-in-progress: false
     steps:
       - name: Check out the tested source commit
@@ -101,186 +88,19 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7.0.0
         with:
-          node-version: 24
+          node-version-file: .node-version
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Download the tested build
-        uses: actions/download-artifact@v8.0.1
-        with:
-          name: sdq-build-${{ github.sha }}
-          path: .
+      - name: Regenerate the video manifest from the sources
+        run: node scripts/prepare-video.mjs
 
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-
-      - name: Check main before publishing the preview
-        id: freshness
-        shell: bash
-        run: |
-          git fetch --no-tags origin main:refs/remotes/origin/main
-          latest_main="$(git rev-parse origin/main)"
-          if [[ "$GITHUB_SHA" == "$latest_main" ]]; then
-            echo "current=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "current=false" >> "$GITHUB_OUTPUT"
-            {
-              echo "### Production deployment skipped"
-              echo
-              echo "Commit \`$GITHUB_SHA\` is older than current main \`$latest_main\`."
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-      - name: Upload videos to production storage
-        if: steps.freshness.outputs.current == 'true'
+      # Cloudflare Pages builds and publishes the pages itself from main.
+      # This job only makes sure every referenced movie exists in the bucket.
+      - name: Upload videos
         run: npm run upload:videos -- --remote
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: Publish the preview
-        id: preview
-        if: steps.freshness.outputs.current == 'true'
-        uses: cloudflare/wrangler-action@v4.0.0
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          wranglerVersion: "4.131.2"
-          workingDirectory: .
-          command: pages deploy out --project-name=sdq-website --branch=ci-${{ github.sha }} --commit-hash=${{ github.sha }}
-
-      - name: Require a preview deployment URL
-        if: steps.freshness.outputs.current == 'true'
-        shell: bash
-        env:
-          DEPLOYMENT_URL: ${{ steps.preview.outputs.deployment-url }}
-        run: |
-          node <<'NODE'
-          let deployment;
-          try {
-            deployment = new URL(process.env.DEPLOYMENT_URL);
-          } catch {
-            console.error("Cloudflare did not return a valid deployment URL.");
-            process.exit(1);
-          }
-
-          const projectDeployment = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.sdq-website\.pages\.dev$/;
-          const valid = deployment.protocol === "https:"
-            && projectDeployment.test(deployment.hostname)
-            && deployment.username === ""
-            && deployment.password === ""
-            && deployment.port === ""
-            && deployment.pathname === "/"
-            && deployment.search === ""
-            && deployment.hash === "";
-
-          if (!valid) {
-            console.error("Cloudflare returned an unexpected deployment URL.");
-            process.exit(1);
-          }
-          NODE
-
-      - name: Test the preview deployment
-        id: preview-check
-        if: steps.freshness.outputs.current == 'true'
-        env:
-          SDQ_PREVIEW_URL: ${{ steps.preview.outputs.deployment-url }}
-        run: npm run test:e2e -- tests/e2e/legacy-navigation.spec.ts tests/e2e/company-content.spec.ts tests/e2e/video-delivery.spec.ts --project=chromium
-
-      - name: Recheck main before publishing to production
-        id: production-freshness
-        if: steps.freshness.outputs.current == 'true'
-        shell: bash
-        run: |
-          git fetch --no-tags origin main:refs/remotes/origin/main
-          latest_main="$(git rev-parse origin/main)"
-          if [[ "$GITHUB_SHA" == "$latest_main" ]]; then
-            echo "current=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "current=false" >> "$GITHUB_OUTPUT"
-            {
-              echo "### Production deployment skipped"
-              echo
-              echo "Main advanced to \`$latest_main\` while preview \`$GITHUB_SHA\` was being verified."
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-      - name: Publish to production
-        id: production
-        if: steps.production-freshness.outputs.current == 'true'
-        uses: cloudflare/wrangler-action@v4.0.0
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          wranglerVersion: "4.131.2"
-          workingDirectory: .
-          command: pages deploy out --project-name=sdq-website --branch=main --commit-hash=${{ github.sha }}
-
-      - name: Require a production deployment URL
-        if: steps.production-freshness.outputs.current == 'true'
-        shell: bash
-        env:
-          DEPLOYMENT_URL: ${{ steps.production.outputs.deployment-url }}
-        run: |
-          node <<'NODE'
-          let deployment;
-          try {
-            deployment = new URL(process.env.DEPLOYMENT_URL);
-          } catch {
-            console.error("Cloudflare did not return a valid deployment URL.");
-            process.exit(1);
-          }
-
-          const projectDeployment = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.sdq-website\.pages\.dev$/;
-          const valid = deployment.protocol === "https:"
-            && projectDeployment.test(deployment.hostname)
-            && deployment.username === ""
-            && deployment.password === ""
-            && deployment.port === ""
-            && deployment.pathname === "/"
-            && deployment.search === ""
-            && deployment.hash === "";
-
-          if (!valid) {
-            console.error("Cloudflare returned an unexpected deployment URL.");
-            process.exit(1);
-          }
-          NODE
-
-      - name: Test the production deployment
-        id: production-check
-        if: steps.production-freshness.outputs.current == 'true'
-        env:
-          SDQ_PREVIEW_URL: ${{ steps.production.outputs.deployment-url }}
-        run: npm run test:e2e -- tests/e2e/legacy-navigation.spec.ts tests/e2e/company-content.spec.ts tests/e2e/video-delivery.spec.ts --project=chromium
-
-      - name: Save browser failure details
-        if: failure() && steps.freshness.outputs.current == 'true'
-        uses: actions/upload-artifact@v7.0.1
-        with:
-          name: browser-failures-${{ github.sha }}-${{ github.run_attempt }}
-          path: |
-            test-results/
-            playwright-report/
-          if-no-files-found: ignore
-          retention-days: 7
-
-      - name: Record deployment results
-        if: always() && steps.freshness.outputs.current == 'true'
-        shell: bash
-        env:
-          PREVIEW_URL: ${{ steps.preview.outputs.deployment-url }}
-          PRODUCTION_URL: ${{ steps.production.outputs.deployment-url }}
-          SOURCE_COMMIT: ${{ github.sha }}
-        run: |
-          {
-            echo "### Cloudflare deployment"
-            echo
-            echo "- Source commit: \`$SOURCE_COMMIT\`"
-            echo "- Preview URL: ${PREVIEW_URL:-Not deployed}"
-            echo "- Production URL: ${PRODUCTION_URL:-Not deployed}"
-          } >> "$GITHUB_STEP_SUMMARY"

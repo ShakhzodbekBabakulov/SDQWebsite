@@ -29,7 +29,7 @@ The site presents SDQ through a six-carriage train journey. Each stop explains o
 | Website | Next.js 16 and React 19 |
 | Language | TypeScript |
 | Browser testing | Playwright |
-| Hosting | Cloudflare Pages project `sdq-website`; canonical domain `https://sdq-sfb.com/` |
+| Hosting | Cloudflare Pages project `sdqwebsite`, built by Cloudflare from GitHub `main`; canonical domain `https://sdq-sfb.com/` |
 
 ## Run locally
 
@@ -72,36 +72,30 @@ npx playwright install
 
 ## Deploy
 
-The pages are published to the existing Cloudflare Pages project `sdq-website`. The four active movie files are served at their existing `/video/` URLs by a Pages Function backed by Cloudflare R2, which supports the partial downloads needed for seeking.
+The pages are published by the Cloudflare Pages project `sdqwebsite`, which is connected to this GitHub repository. Cloudflare clones every push to `main`, runs `npm run build` with the Node version from `.node-version`, publishes the `out/` folder together with the `functions/` directory and the R2 binding from `wrangler.jsonc`, and serves the result at `https://sdqwebsite.pages.dev`, `https://sdq-sfb.com` and `https://www.sdq-sfb.com`. Other branches get preview deployments at `https://<branch>.sdqwebsite.pages.dev`. The four active movie files are served at their existing `/video/` URLs by a Pages Function backed by Cloudflare R2, which supports the partial downloads needed for seeking.
 
-GitHub Actions automates publishing after a merge or push to `main`. Pull requests run checks without publishing or receiving Cloudflare credentials. The workflow runs unit tests, lint, the production build and the full Chromium suite against Cloudflare's local runtime. It saves the tested export together with its generated video manifest, then uploads the referenced movies and publishes a preview. Only after the preview's page, navigation and video checks pass does it publish that same build to production and check it again.
+GitHub Actions does not publish pages. It runs the checks on every pull request and push (unit tests, lint, the production build, TypeScript, the export audit and the Chromium suite against Cloudflare's local runtime), and after a push to `main` it uploads the referenced movies to the private bucket so a changed video is stored before visitors ask for it. Cloudflare publishes `main` whether or not the GitHub checks pass, so merge only when a pull request's checks are green.
 
-Open the repository's **Actions** tab to inspect each run, its source commit, preview and production links, or retained browser failure traces. A manual run publishes only when `main` is selected. Production releases are serialized; an outdated run skips publication when its commit no longer matches `main`.
+Open Cloudflare's **Workers & Pages → sdqwebsite** page to see each build, its source commit and log, and to retry or roll back a deployment. Open the repository's **Actions** tab for check results and retained browser failure traces.
+
+Two build details matter for Cloudflare's build machines: the Node version comes from `.node-version` (Cloudflare's default is too old to import the TypeScript content files), and the Pages Function loads the movie list from the generated `cloudflare/video-manifest.mjs`, because Cloudflare packages Functions with an older bundler that rejects JSON import attributes.
 
 ### One-time credential setup
 
 In the repository's **Settings → Secrets and variables → Actions**, configure:
 
-- `CLOUDFLARE_ACCOUNT_ID`: the account containing `sdq-website`.
-- `CLOUDFLARE_API_TOKEN`: a dedicated token with **Cloudflare Pages Edit** and **Workers R2 Storage Edit**, scoped to that account. The current Wrangler video uploader uses Cloudflare's REST API, so an R2 S3-only bucket token is not sufficient.
+- `CLOUDFLARE_ACCOUNT_ID`: the account containing `sdqwebsite`.
+- `CLOUDFLARE_API_TOKEN`: a dedicated token with **Workers R2 Storage Edit**, scoped to that account, used only to upload movies. The Wrangler video uploader uses Cloudflare's REST API, so an R2 S3-only bucket token is not sufficient.
 
-Keep the token in GitHub's encrypted secret store. Do not commit it or copy the interactive Wrangler login into automation. Deployment-email notifications are configured separately in Cloudflare; a successful GitHub run does not establish email delivery.
+Keep the token in GitHub's encrypted secret store. Do not commit it or copy the interactive Wrangler login into automation. Cloudflare needs no secret from GitHub; it reads the repository through its GitHub App installation.
 
-### Manual publishing and recovery
+### Recovery
 
-If automatic publishing is unavailable, a reviewed checkout can still be published from the project root:
+If a release breaks the live site, open the project in Cloudflare's dashboard, pick the last good deployment and choose **Rollback to this deployment**; or fix `main` and let Cloudflare build again. A failed Cloudflare build leaves the previous deployment live. Each deployment has a permanent address of the form `https://<id>.sdqwebsite.pages.dev`; the production alias is `https://sdqwebsite.pages.dev`.
 
-```bash
-npm run build
-npm run upload:videos -- --remote
-npx wrangler pages deploy out --branch main
-```
+If a movie is missing from storage, run `npm run upload:videos -- --remote` from the project root with the Cloudflare login stored by `wrangler login`; it verifies every source file against `cloudflare/video-manifest.json` before uploading to the private `sdq-website-media` bucket. Existing content-hash video objects are retained for older deployments.
 
-Run these commands from the project root so Wrangler discovers `wrangler.jsonc` and `functions/`. Manual publishing uses the Cloudflare login stored by `wrangler login`. Uploading first ensures every referenced movie exists in the private `sdq-website-media` bucket. Each deployment has a permanent address of the form `https://<id>.sdq-website.pages.dev`; the production alias is `https://sdq-website.pages.dev`.
-
-A failed preview blocks production. A failed check after production publishing marks the GitHub run as failed but does not automatically undo the release. Inspect the run and, when necessary, restore the last verified production deployment from Cloudflare's Pages dashboard. Existing content-hash video objects are retained for older deployments.
-
-The train homepage is `/`; Russian company pages are at `/more/`, with English equivalents at `/more/en/`. Both belong to the canonical domain `sdq-sfb.com`. The Pages hostname is the hosting address, not a second canonical website. Before release, record the current deployment ID for rollback and verify the custom-domain routing. This machine previously resolved the former server; check both local DNS and the Cloudflare domain configuration before declaring the branded website live. Preserve email records and old R2 objects.
+The train homepage is `/`; Russian company pages are at `/more/`, with English equivalents at `/more/en/`. Both belong to the canonical domain `sdq-sfb.com`. The Pages hostname is the hosting address, not a second canonical website. After a release, verify the custom-domain routing on `sdq-sfb.com` and `www.sdq-sfb.com`, not only on the Pages hostname. Preserve email records (the `mail` and MX records point at the former mail server) and old R2 objects.
 
 Search Console Domain verification uses Google's DNS TXT value. For URL-prefix verification, supply the actual `GOOGLE_SITE_VERIFICATION` token when building and retain it for later deployments. See [submission guide](docs/seo/README.md), [keyword map](docs/seo/keyword-map.md), and [validation report](docs/seo/validation.md). Google accepts the published sitemap URL, not a local XML upload.
 
